@@ -16,6 +16,7 @@ class ExcelService {
       'Date',
       'Propriétaire',
       'Type de Projet',
+      'Client', // New Header
       'Produit',
       'Fournisseur',
       'Quantité',
@@ -75,6 +76,7 @@ class ExcelService {
           TextCellValue(DateFormat('dd/MM/yyyy').format(purchase.date)),
           TextCellValue(purchase.owner),
           TextCellValue(purchase.projectType),
+          TextCellValue(purchase.clientName ?? ''), // New Data
           TextCellValue(item.productName ?? 'N/A'),
           TextCellValue(item.supplierName ?? 'N/A'),
           DoubleCellValue(item.quantity),
@@ -104,16 +106,16 @@ class ExcelService {
     sheet.appendRow([
       TextCellValue(''), TextCellValue(''), TextCellValue(''),
       TextCellValue(''), TextCellValue(''), TextCellValue(''),
-      TextCellValue(''),
+      TextCellValue(''), TextCellValue(''),
       TextCellValue('TOTAL GÉNÉRAL'),
       DoubleCellValue(grandTotal),
       TextCellValue(''), // Empty cell for comments column
     ]);
 
     // Style summary row
-    final totalLabelCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: summaryRowIndex));
+    final totalLabelCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: summaryRowIndex));
     totalLabelCell.cellStyle = CellStyle(bold: true, horizontalAlign: HorizontalAlign.Right, backgroundColorHex: ExcelColor.fromHexString('#FFFACD'));
-    final totalValueCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: summaryRowIndex));
+    final totalValueCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: summaryRowIndex));
     totalValueCell.cellStyle = CellStyle(bold: true, backgroundColorHex: ExcelColor.fromHexString('#FFEB3B'), bottomBorder: Border(borderStyle: BorderStyle.Medium), topBorder: Border(borderStyle: BorderStyle.Medium));
 
     // Auto-fit columns

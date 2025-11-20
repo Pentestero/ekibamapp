@@ -8,6 +8,7 @@ class Purchase {
   final String creatorInitials; // New field
   final String demander; // New field
   final String projectType;
+  final String? clientName; // New field
   final String paymentMethod;
   final String comments;
   final DateTime createdAt;
@@ -22,6 +23,7 @@ class Purchase {
     required this.creatorInitials,
     required this.demander,
     required this.projectType,
+    this.clientName,
     required this.paymentMethod,
     this.comments = '',
     required this.createdAt,
@@ -41,6 +43,7 @@ class Purchase {
       'creatorInitials': creatorInitials,
       'demander': demander,
       'projectType': projectType,
+      'clientName': clientName,
       'payment_method': paymentMethod,
       'comments': comments,
       'createdAt': createdAt.millisecondsSinceEpoch,
@@ -62,6 +65,7 @@ class Purchase {
       creatorInitials: map['creator_initials'] as String? ?? '', // New field
       demander: map['demander'] as String? ?? '', // New field
       projectType: map['project_type'] as String? ?? '',
+      clientName: map['client_name'] as String?,
       paymentMethod: map['payment_method'] as String? ?? '',
       comments: map['comments'] as String? ?? '',
       createdAt: map['created_at'] != null ? DateTime.parse(map['created_at'] as String) : DateTime.now(),
@@ -76,6 +80,7 @@ class Purchase {
     String? creatorInitials,
     String? demander,
     String? projectType,
+    String? clientName,
     String? paymentMethod,
     String? comments,
     DateTime? createdAt,
@@ -89,6 +94,7 @@ class Purchase {
       creatorInitials: creatorInitials ?? this.creatorInitials,
       demander: demander ?? this.demander,
       projectType: projectType ?? this.projectType,
+      clientName: clientName ?? this.clientName,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       comments: comments ?? this.comments,
       createdAt: createdAt ?? this.createdAt,

@@ -18,6 +18,7 @@ class PurchaseFormScreen extends StatefulWidget {
 class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _commentsController = TextEditingController();
+  final _clientNameController = TextEditingController();
 
   @override
   void initState() {
@@ -26,15 +27,17 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       final provider = context.read<PurchaseProvider>();
       if (widget.purchase != null) {
         provider.loadPurchaseForEditing(widget.purchase!);
+        _clientNameController.text = widget.purchase!.clientName ?? '';
       } else {
         provider.clearForm(); // Ensure form is clear for new purchase
-      } 
+      }
     });
   }
 
   @override
   void dispose() {
     _commentsController.dispose();
+    _clientNameController.dispose();
     super.dispose();
   }
 
@@ -77,6 +80,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             onPressed: () {
               context.read<PurchaseProvider>().clearForm();
               _commentsController.clear();
+              _clientNameController.clear();
             },
           ),
         ],
@@ -85,6 +89,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         builder: (context, provider, child) {
           if (_commentsController.text != provider.purchaseBuilder.comments) {
             _commentsController.text = provider.purchaseBuilder.comments;
+          }
+          if (_clientNameController.text != (provider.purchaseBuilder.clientName ?? '')) {
+            _clientNameController.text = provider.purchaseBuilder.clientName ?? '';
           }
 
           if (provider.isLoading && provider.requesters.isEmpty) {
@@ -170,8 +177,29 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               value: provider.purchaseBuilder.projectType,
               decoration: const InputDecoration(labelText: 'Type de Projet', prefixIcon: Icon(Icons.work)),
               items: provider.projectTypes.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
-              onChanged: (value) => provider.updatePurchaseHeader(projectType: value),
+              onChanged: (value) {
+                provider.updatePurchaseHeader(projectType: value);
+                // If the project type is not 'Client', clear the client name.
+                if (value != 'Client') {
+                  _clientNameController.clear();
+                  provider.updatePurchaseHeader(clientName: '');
+                }
+              },
             ),
+            if (provider.purchaseBuilder.projectType == 'Client') ...[
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _clientNameController,
+                decoration: const InputDecoration(labelText: 'Nom du Client', prefixIcon: Icon(Icons.person_pin)),
+                onChanged: (value) => provider.updatePurchaseHeader(clientName: value),
+                validator: (value) {
+                  if (provider.purchaseBuilder.projectType == 'Client' && (value == null || value.isEmpty)) {
+                    return 'Le nom du client est requis';
+                  }
+                  return null;
+                },
+              ),
+            ],
             const SizedBox(height: 16),
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -382,21 +410,25 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
       if (!mounted) return;
       if (resultPurchase != null) {
+        final successMessage = provider.isEditing
+            ? 'Mise à jour réussie avec succès ! N°: ${resultPurchase.requestNumber}'
+            : 'Achat enregistré avec succès ! N°: ${resultPurchase.requestNumber}';
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  provider.isEditing 
-                      ? 'Achat mis à jour avec succès ! N°: ${resultPurchase.requestNumber}'
-                      : 'Achat enregistré avec succès ! N°: ${resultPurchase.requestNumber}'),
-              backgroundColor: Colors.green),
+          SnackBar(content: Text(successMessage), backgroundColor: Colors.green),
         );
-        // If editing, pop back to history screen
-        if (provider.isEditing) {
+
+        if (provider.isEditing && Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
       } else {
+        final isNetworkError = provider.errorMessage.contains('Failed to fetch');
+        final errorMessage = isNetworkError
+            ? 'Erreur de connexion. Impossible d\'enregistrer.'
+            : 'Erreur: ${provider.errorMessage}';
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: ${provider.errorMessage}'), backgroundColor: Colors.red),
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
         );
       }
     }

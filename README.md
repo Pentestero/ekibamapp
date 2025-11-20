@@ -1,120 +1,92 @@
-# EkibamApp - Journal de Développement et Intégration Supabase
+# EKIBAM - Application de Gestion des Achats
 
-Ce document retrace les étapes clés du développement de l'application EkibamApp, en se concentrant sur l'intégration d'une base de données externe (Supabase) et la résolution des problèmes rencontrés.
+EKIBAM est une application multiplateforme (Web, Android, iOS) conçue pour simplifier et professionnaliser la gestion des achats au sein d'une entreprise. Elle permet de suivre les demandes, de gérer les articles, d'analyser les dépenses et de générer des documents officiels comme des factures et des rapports.
 
-## 1. Problème Initial : Lenteur au Démarrage et Absence de Base de Données Externe
+## ✨ Fonctionnalités Principales
 
-**Description :** L'application web déployée sur GitHub Pages prenait plusieurs minutes à démarrer (page blanche). De plus, l'application ne disposait pas de base de données externe, rendant les données non persistantes et non partageables.
+L'application offre une suite complète d'outils pour une gestion transparente :
 
-**Hypothèse initiale de l'utilisateur :** La lenteur est due à l'absence de base de données externe.
+### Gestion des Achats
+- **Création d'Achats :** Un formulaire dynamique et intuitif pour enregistrer de nouveaux achats.
+- **Ajout d'Articles :** Possibilité d'ajouter plusieurs articles à chaque achat, en spécifiant le produit, le fournisseur, la quantité et le prix.
+- **Champ Client Dynamique :** Un champ "Nom du client" apparaît automatiquement lorsque le type de projet "Client" est sélectionné, assurant un suivi précis.
+- **Mise à Jour et Suppression :** Modifiez ou supprimez facilement des achats existants directement depuis l'historique.
 
-**Correction :** Il a été confirmé que la lenteur était due à la taille du bundle de l'application Flutter Web. La solution a été d'optimiser la compilation.
+### Historique et Suivi
+- **Vue d'Ensemble :** Un écran d'historique liste tous les achats passés avec les informations clés visibles en un coup d'œil.
+- **Actions Rapides :** Chaque achat dispose de boutons pour générer une facture PDF, modifier ou supprimer l'enregistrement.
+- **Filtres :** Filtrez les achats par période (semaine, mois) pour une analyse ciblée.
 
-**Action :**
-*   Mise à jour du workflow GitHub Actions (`.github/workflows/deploy.yml`) pour utiliser `flutter build web --release -O4 --pwa-strategy=none --base-href /ekibamapp/`.
-*   Cette commande force une optimisation maximale du code JavaScript, réduisant la taille de l'application et accélérant le chargement initial.
+### Export et Rapports
+- **Factures PDF Uniques :** Générez une facture PDF professionnelle et unique pour n'importe quel achat en un seul clic.
+- **Rapports Excel :** Exportez un rapport détaillé de tous les achats au format `.xlsx` pour une analyse approfondie ou un archivage.
 
-## 2. Intégration de Supabase : Base de Données Externe
+### Tableau de Bord (Dashboard)
+- **Analyses Visuelles :** Des graphiques présentent des statistiques sur les dépenses, notamment par fournisseur et par type de projet.
+- **Indicateurs Clés :** Suivez le total des dépenses et le nombre total d'achats.
 
-**Objectif :** Remplacer le stockage local des données par une base de données externe persistante et gratuite, Supabase.
+### Authentification
+- **Système Sécurisé :** Connexion et inscription des utilisateurs pour sécuriser l'accès aux données.
 
-**Étapes d'intégration :**
+## 🛠️ Technologies Utilisées
 
-### 2.1. Configuration de Supabase
-*   **Création du Projet Supabase :** Compte créé sur `supabase.com`, nouveau projet initialisé.
-*   **Récupération des Clés API :** `Project URL` et `anon public key` récupérées depuis les paramètres du projet Supabase.
+- **Framework :** [Flutter](https://flutter.dev/)
+- **Langage :** [Dart](https://dart.dev/)
+- **Backend & Base de Données :** [Supabase](https://supabase.io/)
+- **Gestion d'état :** [Provider](https://pub.dev/packages/provider)
+- **Génération de documents :** [pdf](https://pub.dev/packages/pdf) & [excel](https://pub.dev/packages/excel)
 
-### 2.2. Intégration Flutter
-*   **Dépendance :** Ajout de `supabase_flutter` au `pubspec.yaml`.
-*   **Initialisation :** `Supabase.initialize` ajouté à `main.dart` avec les clés du projet.
+## 🚀 Démarrage Rapide
 
-### 2.3. Création du Schéma de Base de Données (Tables et Colonnes)
+Suivez ces étapes pour lancer le projet sur votre machine locale.
 
-**Points Cruciaux :**
-*   **`NOT NULL` :** Tous les champs `required` dans les modèles Dart doivent être `NOT NULL` dans Supabase.
-*   **Clés Étrangères (Foreign Keys) :** Correctement configurées pour les relations entre tables.
-*   **Nommage :** Utilisation de `snake_case` (`created_at`) dans Supabase pour les noms de colonnes correspondant au `camelCase` (`createdAt`) en Dart, avec ajustements dans le code pour la conversion.
+### Prérequis
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) installé.
+- Un projet [Supabase](https://supabase.com/) configuré avec le schéma de base de données adéquat.
 
-**Détails des Tables :**
+### 1. Configuration du Backend (Supabase)
 
-*   **`products`**
-    *   `id`: `int8`, PK, auto-inc, `NOT NULL`
-    *   `name`: `text`, `NOT NULL`
-    *   `unit`: `text`, `NOT NULL`
-    *   `default_price`: `float8`, `NOT NULL`
-    *   `created_at`: `timestamptz`, `DEFAULT now()`, `NOT NULL`
+Avant de lancer l'application, vous devez la connecter à votre propre projet Supabase.
 
-*   **`suppliers`**
-    *   `id`: `int8`, PK, auto-inc, `NOT NULL`
-    *   `name`: `text`, `NOT NULL`
-    *   `created_at`: `timestamptz`, `DEFAULT now()`, `NOT NULL`
+1.  Créez un projet sur [Supabase](https://app.supabase.com/).
+2.  Dans l'éditeur SQL, exécutez les commandes pour créer les tables (`purchases`, `purchase_items`, `products`, etc.). Assurez-vous que les politiques de sécurité (RLS) sont activées et configurées pour autoriser les opérations `SELECT`, `INSERT`, `UPDATE`, et `DELETE` pour les utilisateurs authentifiés.
+3.  Récupérez votre **URL de projet** et votre **clé publique anonyme (anon public key)** depuis les paramètres API de votre projet Supabase.
 
-*   **`payment_methods`**
-    *   `id`: `int8`, PK, auto-inc, `NOT NULL`
-    *   `name`: `text`, `NOT NULL`, `UNIQUE`
-    *   `created_at`: `timestamptz`, `DEFAULT now()`, `NOT NULL`
+### 2. Configuration du Frontend (Flutter)
 
-*   **`purchases`**
-    *   `id`: `int8`, PK, auto-inc, `NOT NULL`
-    *   `request_number`: `text`
-    *   `date`: `timestamptz`, `NOT NULL`
-    *   `owner`: `text`, `NOT NULL`
-    *   `creator_initials`: `text`, `NOT NULL`
-    *   `demander`: `text`, `NOT NULL`
-    *   `project_type`: `text`, `NOT NULL`
-    *   `payment_method`: `text`, `NOT NULL`
-    *   `comments`: `text`
-    *   `created_at`: `timestamptz`, `DEFAULT now()`, `NOT NULL`
+1.  Clonez ce dépôt :
+    ```sh
+    git clone <URL_DU_DEPOT>
+    cd ekibamapp
+    ```
 
-*   **`purchase_items`**
-    *   `id`: `int8`, PK, auto-inc, `NOT NULL`
-    *   `purchase_id`: `int8`, FK vers `purchases.id`, `NOT NULL`
-    *   `product_id`: `int8`, FK vers `products.id`, `NOT NULL`
-    *   `supplier_id`: `int8`, FK vers `suppliers.id`, `NOT NULL`
-    *   `quantity`: `float8`, `NOT NULL`
-    *   `unit_price`: `float8`, `NOT NULL`
-    *   `payment_fee`: `float8`, `NOT NULL`
-    *   `comment`: `text`
-    *   `created_at`: `timestamptz`, `DEFAULT now()`, `NOT NULL`
+2.  Modifiez le fichier `lib/main.dart` pour y insérer vos propres clés Supabase :
+    ```dart
+    // lib/main.dart
 
-### 2.4. Mise à Jour du Code pour Supabase
+    void main() async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-*   **`lib/services/database_service.dart`**
-    *   Implémentation du pattern Singleton.
-    *   `getProducts()`: Récupère les produits depuis la table `products`.
-    *   `getSuppliers()`: Récupère les fournisseurs depuis la table `suppliers`.
-    *   `getPaymentMethods()`: Récupère les modes de paiement depuis la table `payment_methods`.
-    *   `getAllPurchases()`: Récupère les achats avec leurs `purchase_items` imbriqués, ainsi que les détails des produits et fournisseurs associés (requête `select` complexe).
-    *   `addPurchase()`: Insère un nouvel achat et ses `purchase_items` dans les tables respectives.
-    *   **Corrections :**
-        *   Gestion des dates (`DateTime.parse`) et des valeurs `null` dans `Purchase.fromMap`.
-        *   Correction du nom de colonne `created_at` (snake_case) lors de l'insertion et de la lecture.
-        *   Robustesse des `id` (`purchaseId`, `productId`) dans `PurchaseItem.fromMap` (`as int? ?? 0`).
-        *   Ajout de méthodes placeholder pour `insertProduct`, `insertSupplier`, `insertPaymentMethod`.
+      await Supabase.initialize(
+        url: 'VOTRE_URL_SUPABASE', // Remplacez par votre URL
+        anonKey: 'VOTRE_CLE_ANON_SUPABASE', // Remplacez par votre clé
+      );
 
-*   **`lib/providers/purchase_provider.dart`**
-    *   `loadPurchases()`: Appelle `_dbService.getAllPurchases()`.
-    *   `addPurchase()`: Appelle `_dbService.addPurchase()`.
-    *   Restauration des méthodes `addNewProduct`, `addNewSupplier`, `addNewRequester`, `addNewPaymentMethod`.
-    *   **Corrections :**
-        *   Commentaire temporaire de la vérification `_authService.isLoggedIn()` dans `initialize()` et `loadPurchases()` pour permettre le chargement des données sans authentification.
-        *   Ajout d'un `notifyListeners()` explicite après le chargement des achats.
+      runApp(const MyApp());
+    }
+    ```
+    *(Pour une meilleure pratique, il est recommandé de stocker ces clés dans des variables d'environnement ou un fichier de configuration non versionné).*
 
-*   **`lib/screens/purchase_form_screen.dart`**
-    *   **Correction :** Utilisation de `WidgetsBinding.instance.addPostFrameCallback` dans `didUpdateWidget` de `_PurchaseItemCardState` pour éviter l'erreur `setState() or markNeedsBuild() called during build.`.
+### 3. Lancement de l'Application
 
-*   **`lib/screens/history_screen.dart`**
-    *   **Correction :** Désactivation temporaire du filtrage des achats dans `_getFilteredPurchases` pour toujours afficher tous les achats.
+1.  Installez les dépendances :
+    ```sh
+    flutter pub get
+    ```
 
-## 3. Problème Actuel : Données non Affichées Correctement dans l'Historique/Tableau de Bord
+2.  Lancez l'application sur l'appareil de votre choix (Chrome pour le web) :
+    ```sh
+    flutter run -d chrome
+    ```
 
-**Description :**
-*   L'application démarre sans erreur de compilation ou d'exécution (les logs `Supabase raw data for purchases: [...]` et `PurchaseProvider: _purchases after loading: X purchases` le confirment).
-*   Les données brutes sont correctement récupérées de Supabase et parsées en objets `Purchase` et `PurchaseItem` dans le `DatabaseService` et le `PurchaseProvider`.
-*   Cependant, l'historique des achats et le tableau de bord n'affichent pas correctement les détails des achats (N/A, totaux à 0.00, etc.). Les données semblent apparaître brièvement puis disparaître ou être remplacées par des valeurs par défaut.
-
-**État du Débogage :**
-*   Le problème ne semble plus être dans la récupération ou le parsing des données brutes.
-*   L'hypothèse actuelle est que l'interface utilisateur ne réagit pas correctement aux mises à jour du `PurchaseProvider`, ou qu'il y a un problème subtil dans la logique d'affichage des widgets `PurchaseExpansionCard` ou `_buildSummaryHeader` qui les empêche d'accéder correctement aux données complètes des objets `Purchase` et `PurchaseItem`.
-
-**Prochaine Étape :** Examiner plus en détail la logique d'affichage dans `history_screen.dart` et `dashboard_screen.dart` pour comprendre pourquoi les données ne sont pas rendues correctement malgré leur présence dans le `PurchaseProvider`.
+L'application devrait maintenant démarrer et se connecter à votre instance Supabase.

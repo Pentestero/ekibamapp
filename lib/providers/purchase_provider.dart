@@ -126,12 +126,58 @@ class PurchaseProvider with ChangeNotifier {
   }
 
   Future<Purchase?> updatePurchase() async {
-    print("Update feature not implemented yet.");
-    return null;
+    if (!isEditing || _editingPurchaseId == null) {
+      _errorMessage = "Aucun achat n'est en cours de modification.";
+      notifyListeners();
+      return null;
+    }
+    if (_itemsBuilder.isEmpty) {
+      _errorMessage = 'Veuillez ajouter au moins un article.';
+      notifyListeners();
+      return null;
+    }
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final purchaseToSave = _preparePurchaseForSaving();
+      final updatedPurchase = await _dbService.updatePurchase(purchaseToSave);
+
+      final index = _purchases.indexWhere((p) => p.id == _editingPurchaseId);
+      if (index != -1) {
+        _purchases[index] = updatedPurchase;
+      } else {
+        await loadPurchases(notify: false); // Fallback
+      }
+
+      clearForm();
+      return updatedPurchase;
+
+    } catch (e) {
+      _errorMessage = "Erreur lors de la mise à jour: $e";
+      return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> deletePurchase(int id) async {
-    print("Delete feature not implemented yet.");
+    _isLoading = true;
+    _errorMessage = '';
+    notifyListeners();
+
+    try {
+      await _dbService.deletePurchase(id);
+      _purchases.removeWhere((purchase) => purchase.id == id);
+      _errorMessage = '';
+    } catch (e) {
+      _errorMessage = "Erreur lors de la suppression: $e";
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   void loadPurchaseForEditing(Purchase purchase) {
@@ -234,8 +280,8 @@ class PurchaseProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void updatePurchaseHeader({DateTime? date, String? owner, String? demander, String? projectType, String? paymentMethod, String? comments}) {
-    _purchaseBuilder = _purchaseBuilder.copyWith(date: date, owner: owner, demander: demander, projectType: projectType, paymentMethod: paymentMethod, comments: comments);
+  void updatePurchaseHeader({DateTime? date, String? owner, String? demander, String? projectType, String? clientName, String? paymentMethod, String? comments}) {
+    _purchaseBuilder = _purchaseBuilder.copyWith(date: date, owner: owner, demander: demander, projectType: projectType, clientName: clientName, paymentMethod: paymentMethod, comments: comments);
     if (paymentMethod != null) _recalculateAllItemFees();
     notifyListeners();
   }
@@ -293,10 +339,18 @@ class PurchaseProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> exportToPdf() async {
+  Future<void> exportInvoiceToPdf(Purchase purchase) async {
     _isLoading = true;
     notifyListeners();
-    await PdfService.generatePurchaseReport(_purchases);
+    await PdfService.generateInvoicePdf(purchase);
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> exportPurchaseListToPdf() async {
+    _isLoading = true;
+    notifyListeners();
+    await PdfService.generatePurchaseListPdf(_purchases);
     _isLoading = false;
     notifyListeners();
   }

@@ -160,6 +160,26 @@ class DatabaseService {
     }
   }
 
+  Future<void> deletePurchase(int id) async {
+    try {
+      // Step 1: Delete all associated items from the 'purchase_items' table
+      await _supabase
+          .from('purchase_items')
+          .delete()
+          .eq('purchase_id', id);
+
+      // Step 2: Delete the main purchase record from the 'purchases' table
+      await _supabase
+          .from('purchases')
+          .delete()
+          .eq('id', id);
+          
+    } catch (e) {
+      print("Erreur lors de la suppression de l'achat: $e");
+      rethrow;
+    }
+  }
+
   // --- Product Methods ---
   Future<List<Product>> getProducts() async {
     try {

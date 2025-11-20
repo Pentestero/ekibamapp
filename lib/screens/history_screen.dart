@@ -36,10 +36,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
             icon: const Icon(Icons.file_download),
             onPressed: () => context.read<PurchaseProvider>().exportToExcel(),
           ),
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf),
-            onPressed: () => context.read<PurchaseProvider>().exportToPdf(),
-          ),
         ],
       ),
       body: Consumer<PurchaseProvider>(
@@ -68,7 +64,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     itemCount: filteredPurchases.length,
                     itemBuilder: (context, index) {
                       final purchase = filteredPurchases[index];
-                      return PurchaseExpansionCard(purchase: purchase);
+                      return PurchaseCard(purchase: purchase);
                     },
                   ),
                 ),
@@ -92,9 +88,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildErrorWidget(BuildContext context, PurchaseProvider provider) {
+    final isNetworkError = provider.errorMessage.contains('Failed to fetch');
+    final errorMessage = isNetworkError
+        ? 'Erreur de connexion.\nVeuillez vérifier votre connexion internet et réessayer.'
+        : provider.errorMessage;
+
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Icon(Icons.error_outline, size: 64, color: Colors.red),
-      const SizedBox(height: 16), Text(provider.errorMessage, textAlign: TextAlign.center),
+      Icon(isNetworkError ? Icons.wifi_off : Icons.error_outline, size: 64, color: Colors.red),
+      const SizedBox(height: 16), Text(errorMessage, textAlign: TextAlign.center),
       const SizedBox(height: 16), ElevatedButton(onPressed: () => provider.loadPurchases(), child: const Text('Réessayer')),
     ]));
   }
@@ -136,137 +137,69 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 }
 
-class PurchaseExpansionCard extends StatelessWidget {
+class PurchaseCard extends StatelessWidget {
   final Purchase purchase;
-  const PurchaseExpansionCard({super.key, required this.purchase});
+  const PurchaseCard({super.key, required this.purchase});
 
   @override
   Widget build(BuildContext context) {
     final provider = context.read<PurchaseProvider>();
     final formattedDate = DateFormat('dd/MM/yyyy').format(purchase.date);
-    final totalItems = purchase.items.length;
+    
+    final subtitleText = purchase.projectType == 'Client' && (purchase.clientName?.isNotEmpty ?? false)
+        ? 'Projet: ${purchase.projectType} (${purchase.clientName})'
+        : 'Projet: ${purchase.projectType}';
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      elevation: 3,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         title: Text(purchase.requestNumber ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('Demandeur: ${purchase.owner} • Projet: ${purchase.projectType}'),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 4),
+            Text('Demandeur: ${purchase.demander}'),
+            Text(subtitleText),
+            const SizedBox(height: 4),
             Text(
-              '${NumberFormat('#,##0.00', 'fr_FR').format(purchase.grandTotal)} FCFA',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              '${NumberFormat('#,##0', 'fr_FR').format(purchase.grandTotal)} FCFA • $formattedDate',
+              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
             ),
-            Text('$totalItems article(s) • $formattedDate'),
           ],
         ),
-        children: [
-          const Divider(height: 1, thickness: 1),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ...purchase.items.map((item) {
-                  final itemSubtotal = item.quantity * item.unitPrice;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item.productName ?? 'Produit inconnu', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        if (item.supplierName != null && item.supplierName != 'N/A')
-                          Text('Fournisseur: ${item.supplierName}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${NumberFormat('#,##0.00', 'fr_FR').format(item.quantity)} x ${NumberFormat('#,##0.00', 'fr_FR').format(item.unitPrice)}',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ),
-                            Text(
-                              '${NumberFormat('#,##0.00', 'fr_FR').format(itemSubtotal)} FCFA',
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        if (item.paymentFee > 0)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Frais de paiement:', style: TextStyle(fontSize: 12, color: Colors.orange[800])),
-                              Text(
-                                '+ ${NumberFormat('#,##0.00', 'fr_FR').format(item.paymentFee)} FCFA',
-                                style: TextStyle(fontSize: 12, color: Colors.orange[800], fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        if (item.comment != null && item.comment!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4.0),
-                            child: Text(
-                              'Commentaire: ${item.comment}',
-                              style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey),
-                            ),
-                          ),
-                        const Divider(height: 8),
-                      ],
-                    ),
-                  );
-                }),
-
-                if (purchase.totalPaymentFees > 0)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Frais de paiement totaux', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text(
-                          '${NumberFormat('#,##0.00', 'fr_FR').format(purchase.totalPaymentFees)} FCFA',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[800]),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                if (purchase.comments.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text('Commentaires: ${purchase.comments}', style: const TextStyle(fontStyle: FontStyle.italic)),
-                  ),
-              ],
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf),
+              color: Colors.red.shade700,
+              tooltip: 'Générer la facture PDF',
+              onPressed: () => provider.exportInvoiceToPdf(purchase),
             ),
-          ),
-          OverflowBar(
-            alignment: MainAxisAlignment.end,
-            children: [
-              TextButton.icon(
-                icon: const Icon(Icons.edit, size: 16),
-                label: const Text('Modifier'),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PurchaseFormScreen(purchase: purchase),
-                    ),
-                  );
-                },
-              ),
-              TextButton.icon(
-                icon: const Icon(Icons.delete, size: 16),
-                label: const Text('Supprimer'),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                onPressed: () => _showDeleteDialog(context, provider, purchase),
-              ),
-            ],
-          )
-        ],
+            IconButton(
+              icon: const Icon(Icons.edit),
+              color: Colors.blue.shade700,
+              tooltip: 'Modifier',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PurchaseFormScreen(purchase: purchase),
+                  ),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete),
+              color: Colors.grey.shade600,
+              tooltip: 'Supprimer',
+              onPressed: () => _showDeleteDialog(context, provider, purchase),
+            ),
+          ],
+        ),
+        isThreeLine: true,
       ),
     );
   }
