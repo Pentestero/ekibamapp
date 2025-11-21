@@ -68,13 +68,13 @@ class PdfService {
             pw.Image(pw.MemoryImage(logoBytes), height: 60),
             pw.SizedBox(height: 10),
             pw.Text('EKIBAM', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 20)),
-            pw.Text('Votre partenaire construction'),
+            pw.Text('Cuisines, Rangements & plus...'),
           ],
         ),
         pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
-            pw.Text('FACTURE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 28, color: PdfColors.blueGrey800)),
+            pw.Text("DEMANDE D'ACHATS", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 28, color: PdfColors.blueGrey800)),
             pw.SizedBox(height: 10),
             pw.Text('N°: ${purchase.requestNumber ?? 'N/A'}'),
             pw.Text('Date: ${DateFormat('dd/MM/yyyy').format(purchase.date)}'),
@@ -179,7 +179,7 @@ class PdfService {
         pw.SizedBox(height: 10),
         pw.Text('Merci pour votre confiance !', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 5),
-        pw.Text('EKIBAM Company - EDEA, Cameroun'),
+        pw.Text('EKIBAM SARL - EDEA, Cameroun'),
         pw.SizedBox(height: 20),
         pw.Align(
           alignment: pw.Alignment.bottomRight,
