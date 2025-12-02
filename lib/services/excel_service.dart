@@ -83,7 +83,7 @@ class ExcelService {
           DoubleCellValue(item.unitPrice),
           DoubleCellValue(item.total),
           TextCellValue(purchase.paymentMethod),
-          TextCellValue(item.comment ?? purchase.comments ?? ''), // Use item comment, fallback to purchase comment
+          TextCellValue(item.comment ?? purchase.comments), // item comment, fallback to purchase comment
         ];
         sheet.appendRow(row);
         // Apply borders to data cells

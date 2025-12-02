@@ -41,10 +41,10 @@ class PurchaseItem {
   }
 
   static PurchaseItem fromMap(Map<String, dynamic> map) {
-    print("PurchaseItem.fromMap received map: $map"); // Debug print
-    final productName = map['productName'] as String?;
-    final supplierName = map['supplierName'] as String?;
-    print("  -> productName: $productName, supplierName: $supplierName"); // Debug print
+    // Debug logs removed for production
+    final productName = (map['products'] as Map<String, dynamic>?)?['name'] as String?;
+    final supplierName = (map['suppliers'] as Map<String, dynamic>?)?['name'] as String?;
+    // Debug logs removed for production
 
     return PurchaseItem(
       id: map['id'] as int?,

@@ -1,4 +1,5 @@
 import 'package:provisions/models/purchase.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provisions/models/purchase_item.dart';
 import 'package:provisions/models/supplier.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -32,7 +33,7 @@ class DatabaseService {
           .eq('user_id', userId) // Filter by the current user's ID
           .order('created_at', ascending: false);
 
-      print("Supabase raw data for purchases: $data");
+      debugPrint("Supabase raw data for purchases: $data");
 
       final purchases = data.map((purchaseData) {
         final purchase = Purchase.fromMap(purchaseData);
@@ -57,8 +58,8 @@ class DatabaseService {
 
       return purchases;
     } catch (e) {
-      print("Erreur lors de la récupération des achats: $e");
-      print("Full error details: ${e.toString()}");
+      debugPrint("Erreur lors de la récupération des achats: $e");
+      debugPrint("Full error details: ${e.toString()}");
       return [];
     }
   }
@@ -73,17 +74,33 @@ class DatabaseService {
         'creator_initials': purchase.creatorInitials,
         'demander': purchase.demander,
         'project_type': purchase.projectType,
+        'client_name': purchase.clientName,
         'payment_method': purchase.paymentMethod,
         'comments': purchase.comments,
         'created_at': purchase.createdAt.toIso8601String(),
         'user_id': userId, // Associate the purchase with the current user
       };
 
-      final insertedPurchase = await _supabase
-          .from('purchases')
-          .insert(purchaseToInsert)
-          .select()
-          .single();
+      Map<String, dynamic> insertedPurchase;
+      try {
+        insertedPurchase = await _supabase
+            .from('purchases')
+            .insert(purchaseToInsert)
+            .select()
+            .single();
+      } on PostgrestException catch (e) {
+        if (e.message.contains("client_name")) {
+          final fallback = Map<String, dynamic>.from(purchaseToInsert);
+          fallback.remove('client_name');
+          insertedPurchase = await _supabase
+              .from('purchases')
+              .insert(fallback)
+              .select()
+              .single();
+        } else {
+          rethrow;
+        }
+      }
 
       final newPurchaseId = insertedPurchase['id'];
 
@@ -106,7 +123,7 @@ class DatabaseService {
       return purchase.copyWith(id: newPurchaseId);
 
     } catch (e) {
-      print("Erreur lors de l'ajout de l'achat: $e");
+      debugPrint("Erreur lors de l'ajout de l'achat: $e");
       rethrow;
     }
   }
@@ -121,14 +138,28 @@ class DatabaseService {
         'creator_initials': purchase.creatorInitials,
         'demander': purchase.demander,
         'project_type': purchase.projectType,
+        'client_name': purchase.clientName,
         'payment_method': purchase.paymentMethod,
         'comments': purchase.comments,
       };
 
-      await _supabase
-          .from('purchases')
-          .update(purchaseToUpdate)
-          .eq('id', purchase.id!);
+      try {
+        await _supabase
+            .from('purchases')
+            .update(purchaseToUpdate)
+            .eq('id', purchase.id!);
+      } on PostgrestException catch (e) {
+        if (e.message.contains('client_name')) {
+          final fallback = Map<String, dynamic>.from(purchaseToUpdate);
+          fallback.remove('client_name');
+          await _supabase
+              .from('purchases')
+              .update(fallback)
+              .eq('id', purchase.id!);
+        } else {
+          rethrow;
+        }
+      }
 
       // 2. Delete old items
       await _supabase
@@ -155,7 +186,7 @@ class DatabaseService {
       return purchase;
 
     } catch (e) {
-      print("Erreur lors de la mise à jour de l'achat: $e");
+      debugPrint("Erreur lors de la mise à jour de l'achat: $e");
       rethrow;
     }
   }
@@ -175,7 +206,7 @@ class DatabaseService {
           .eq('id', id);
           
     } catch (e) {
-      print("Erreur lors de la suppression de l'achat: $e");
+      debugPrint("Erreur lors de la suppression de l'achat: $e");
       rethrow;
     }
   }
@@ -189,7 +220,7 @@ class DatabaseService {
       }).toList();
       return products;
     } catch (e) {
-      print("Erreur lors de la récupération des produits: $e");
+      debugPrint("Erreur lors de la récupération des produits: $e");
       return [];
     }
   }
@@ -201,7 +232,7 @@ class DatabaseService {
       final suppliers = data.map((item) => Supplier.fromMap(item)).toList();
       return suppliers;
     } catch (e) {
-      print("Erreur lors de la récupération des fournisseurs: $e");
+      debugPrint("Erreur lors de la récupération des fournisseurs: $e");
       return [];
     }
   }
@@ -224,7 +255,7 @@ class DatabaseService {
 
       return Product.fromMap(insertedProduct);
     } catch (e) {
-      print("Erreur lors de l'insertion du produit: $e");
+      debugPrint("Erreur lors de l'insertion du produit: $e");
       rethrow;
     }
   }
@@ -239,15 +270,33 @@ class DatabaseService {
 
       return Supplier.fromMap(insertedSupplier);
     } catch (e) {
-      print("Erreur lors de l'insertion du fournisseur: $e");
+      debugPrint("Erreur lors de l'insertion du fournisseur: $e");
       rethrow;
     }
   }
 
   Future<String> insertPaymentMethod(String userId, String name) async {
-    print("insertPaymentMethod called but not fully implemented for Supabase yet.");
-    // TODO: Implement actual Supabase insert for payment methods
-    return name;
+    try {
+      final List existing = await _supabase
+          .from('payment_methods')
+          .select('name')
+          .eq('name', name);
+
+      if (existing.isNotEmpty) {
+        return existing.first['name'] as String;
+      }
+
+      final inserted = await _supabase
+          .from('payment_methods')
+          .insert({'name': name})
+          .select('name')
+          .single();
+
+      return inserted['name'] as String;
+    } catch (e) {
+      debugPrint("Erreur lors de l'insertion du mode de paiement: $e");
+      return name;
+    }
   }
 
   // --- Other Placeholder Methods ---
@@ -256,7 +305,7 @@ class DatabaseService {
       final data = await _supabase.from('payment_methods').select('name');
       return data.map((item) => item['name'] as String).toList();
     } catch (e) {
-      print("Erreur lors de la récupération des modes de paiement: $e");
+      debugPrint("Erreur lors de la récupération des modes de paiement: $e");
       return [];
     }
   }

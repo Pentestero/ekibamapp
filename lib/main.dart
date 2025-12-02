@@ -26,15 +26,19 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeController()),
         ChangeNotifierProvider(create: (_) => AuthService.instance),
         ChangeNotifierProvider(create: (_) => PurchaseProvider()),
       ],
-      child: MaterialApp(
+      child: Builder(
+        builder: (context) {
+          final theme = context.watch<ThemeController>();
+          return MaterialApp(
         title: 'EKIBAM',
         debugShowCheckedModeBanner: false,
-        theme: lightTheme,
-        darkTheme: darkTheme,
-        themeMode: ThemeMode.system,
+        theme: theme.lightTheme,
+        darkTheme: theme.darkTheme,
+        themeMode: theme.mode,
         home: StreamBuilder<AuthState>(
           stream: AuthService.instance.authStateChanges,
           builder: (context, snapshot) {
@@ -52,6 +56,8 @@ class MyApp extends StatelessWidget {
             return const AuthScreen();
           },
         ),
+          );
+        },
       ),
     );
   }

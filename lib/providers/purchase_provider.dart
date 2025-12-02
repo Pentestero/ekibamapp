@@ -241,12 +241,18 @@ class PurchaseProvider with ChangeNotifier {
 
   void addNewItem() {
     if (_products.isEmpty || _suppliers.isEmpty) return;
+
+    final Product firstProduct = _products.first;
+    final Supplier firstSupplier = _suppliers.first;
+
     final newItem = PurchaseItem(
       purchaseId: _editingPurchaseId ?? 0,
-      productId: _products.first.id!,
-      supplierId: _suppliers.first.id!,
+      productId: firstProduct.id!,
+      supplierId: firstSupplier.id!,
       quantity: 1.0,
-      unitPrice: _products.first.defaultPrice,
+      unitPrice: firstProduct.defaultPrice,
+      productName: firstProduct.name, // Populated name
+      supplierName: firstSupplier.name, // Populated name
     );
     _itemsBuilder.add(newItem);
     _recalculateAllItemFees();
@@ -264,11 +270,30 @@ class PurchaseProvider with ChangeNotifier {
   void updateItem(int index, {int? productId, int? supplierId, double? quantity, double? unitPrice}) {
     if (index < 0 || index >= _itemsBuilder.length) return;
     final oldItem = _itemsBuilder[index];
+
+    // Find the new product if ID changes
+    final finalProductId = productId ?? oldItem.productId;
+    final product = _products.firstWhere((p) => p.id == finalProductId, orElse: () => _products.first);
+    final newProductName = product.name;
+
+    // Find the new supplier if ID changes
+    final finalSupplierId = supplierId ?? oldItem.supplierId;
+    final supplier = _suppliers.firstWhere((s) => s.id == finalSupplierId, orElse: () => _suppliers.first);
+    final newSupplierName = supplier.name;
+
     double newUnitPrice = unitPrice ?? oldItem.unitPrice;
     if (productId != null && productId != oldItem.productId && unitPrice == null) {
-      newUnitPrice = _products.firstWhere((p) => p.id == productId, orElse: () => _products.first).defaultPrice;
+      newUnitPrice = product.defaultPrice;
     }
-    _itemsBuilder[index] = oldItem.copyWith(productId: productId, supplierId: supplierId, quantity: quantity, unitPrice: newUnitPrice);
+
+    _itemsBuilder[index] = oldItem.copyWith(
+      productId: finalProductId,
+      supplierId: finalSupplierId,
+      quantity: quantity,
+      unitPrice: newUnitPrice,
+      productName: newProductName, // Always update name
+      supplierName: newSupplierName, // Always update name
+    );
     _recalculateAllItemFees();
     notifyListeners();
   }

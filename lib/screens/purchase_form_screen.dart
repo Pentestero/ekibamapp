@@ -146,7 +146,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               onTap: () => _selectDate(context, provider),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
-                side: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+                side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
               ),
             ),
             const SizedBox(height: 16),
@@ -155,7 +155,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: provider.requesters.contains(provider.purchaseBuilder.demander)
+                    initialValue: provider.requesters.contains(provider.purchaseBuilder.demander)
                         ? provider.purchaseBuilder.demander
                         : null,
                     decoration: const InputDecoration(labelText: 'Demandeur', prefixIcon: Icon(Icons.person)),
@@ -174,7 +174,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: provider.purchaseBuilder.projectType,
+              initialValue: provider.purchaseBuilder.projectType,
               decoration: const InputDecoration(labelText: 'Type de Projet', prefixIcon: Icon(Icons.work)),
               items: provider.projectTypes.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
               onChanged: (value) {
@@ -206,7 +206,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: provider.paymentMethods.contains(provider.purchaseBuilder.paymentMethod)
+                    initialValue: provider.paymentMethods.contains(provider.purchaseBuilder.paymentMethod)
                         ? provider.purchaseBuilder.paymentMethod
                         : null,
                     decoration: const InputDecoration(labelText: 'Mode de paiement', prefixIcon: Icon(Icons.payment)),
@@ -250,7 +250,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 32.0),
               child: Text(
-                'Appuyez sur \"Ajouter un article\" pour commencer.',
+                'Appuyez sur "Ajouter un article" pour commencer.',
                 style: Theme.of(context).textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),
@@ -408,7 +408,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         resultPurchase = await provider.addPurchase();
       }
 
-      if (!mounted) return;
+      if (!context.mounted) return;
       if (resultPurchase != null) {
         final successMessage = provider.isEditing
             ? 'Mise à jour réussie avec succès ! N°: ${resultPurchase.requestNumber}'
@@ -492,6 +492,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
         );
       },
     ).then((newProduct) {
+      if (!mounted) return;
       if (newProduct != null && newProduct is Product) {
         context.read<PurchaseProvider>().updateItem(widget.index, productId: newProduct.id);
       }
@@ -508,6 +509,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
         );
       },
     ).then((newSupplier) {
+      if (!mounted) return;
       if (newSupplier != null && newSupplier is Supplier) {
         context.read<PurchaseProvider>().updateItem(widget.index, supplierId: newSupplier.id);
       }
@@ -547,7 +549,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<int>(
-                    value: item.productId,
+                    initialValue: item.productId,
                     decoration: const InputDecoration(labelText: 'Catégorie'),
                     items: provider.products.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
                     onChanged: (value) {
@@ -572,7 +574,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<int>(
-                    value: item.supplierId,
+                    initialValue: item.supplierId,
                     decoration: const InputDecoration(labelText: 'Fournisseur'),
                     items: provider.suppliers.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(),
                     onChanged: (value) {
@@ -717,7 +719,8 @@ class __AddRequesterDialogState extends State<_AddRequesterDialog> {
             if (_formKey.currentState!.validate()) {
               _formKey.currentState!.save();
               await context.read<PurchaseProvider>().addNewRequester(name: _name);
-              if (mounted) Navigator.of(context).pop();
+              if (!context.mounted) return;
+              Navigator.of(context).pop();
             }
           },
           child: const Text('Enregistrer'),
@@ -759,7 +762,8 @@ class __AddPaymentMethodDialogState extends State<_AddPaymentMethodDialog> {
             if (_formKey.currentState!.validate()) {
               _formKey.currentState!.save();
               await context.read<PurchaseProvider>().addNewPaymentMethod(name: _name);
-              if (mounted) Navigator.of(context).pop();
+              if (!context.mounted) return;
+              Navigator.of(context).pop();
             }
           },
           child: const Text('Enregistrer'),
@@ -778,20 +782,41 @@ class _AddProductDialog extends StatefulWidget {
 
 class __AddProductDialogState extends State<_AddProductDialog> {
   final _formKey = GlobalKey<FormState>();
-  String _category = '';
   String _name = '';
   String _unit = '';
   double _defaultPrice = 0.0;
 
+  String _selectedCategory = '';
+  bool _isNewCategory = false;
+  final TextEditingController _newCategoryController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _newCategoryController.dispose();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     final provider = context.read<PurchaseProvider>();
-    final categories = provider.products.map((p) {
+    final List<String> existingCategories = provider.products.map((p) {
       final parts = p.name.split(':');
-      return parts.length > 1 ? parts.first.trim() : 'Autres';
-    }).toSet().toList();
-    if (_category.isEmpty && categories.isNotEmpty) {
-      _category = categories.first;
+      return parts.length > 1 ? parts.first.trim() : null; // Remove 'Autres' fallback here
+    }).where((cat) => cat != null).map((cat) => cat!).toSet().toList().cast<String>();
+
+    final List<String> allCategories = ['Nouvelle catégorie', ...existingCategories];
+
+    if (_selectedCategory.isEmpty) {
+      if (existingCategories.isNotEmpty) {
+        _selectedCategory = existingCategories.first;
+      } else {
+        _selectedCategory = 'Nouvelle catégorie';
+        _isNewCategory = true;
+      }
     }
 
     return AlertDialog(
@@ -803,18 +828,35 @@ class __AddProductDialogState extends State<_AddProductDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                value: _category,
+                initialValue: _selectedCategory,
                 decoration: const InputDecoration(labelText: 'Catégorie'),
-                items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                items: allCategories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                 onChanged: (value) {
                   if (value != null) {
                     setState(() {
-                      _category = value;
+                      _selectedCategory = value;
+                      _isNewCategory = (value == 'Nouvelle catégorie');
+                      if (!_isNewCategory) {
+                        _newCategoryController.clear(); // Clear input if switching back to existing category
+                      }
                     });
                   }
                 },
                 validator: (value) => (value == null || value.isEmpty) ? 'Champ requis' : null,
               ),
+              if (_isNewCategory) ...[
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _newCategoryController,
+                  decoration: const InputDecoration(labelText: 'Nom de la nouvelle catégorie'),
+                  validator: (value) {
+                    if (_isNewCategory && (value == null || value.isEmpty)) {
+                      return 'Veuillez entrer le nom de la nouvelle catégorie';
+                    }
+                    return null;
+                  },
+                ),
+              ],
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Nom du produit'),
                 onSaved: (value) => _name = value ?? '',
@@ -840,21 +882,23 @@ class __AddProductDialogState extends State<_AddProductDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Annuler'),
         ),
-        ElevatedButton(
-          onPressed: () async {
-            if (_formKey.currentState!.validate()) {
-              _formKey.currentState!.save();
-              final newProduct = await provider.addNewProduct(
-                category: _category,
-                name: _name,
-                unit: _unit,
-                defaultPrice: _defaultPrice,
-              );
-              Navigator.of(context).pop(newProduct);
-            }
-          },
-          child: const Text('Enregistrer'),
-        ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (_formKey.currentState!.validate()) {
+                    _formKey.currentState!.save();
+                    final String finalCategory = _isNewCategory ? _newCategoryController.text : _selectedCategory;
+                    final newProduct = await provider.addNewProduct(
+                      category: finalCategory,
+                      name: _name,
+                      unit: _unit,
+                      defaultPrice: _defaultPrice,
+                    );
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop(newProduct);
+                  }
+                },
+                child: const Text('Enregistrer'),
+              ),
       ],
     );
   }
@@ -894,6 +938,7 @@ class __AddSupplierDialogState extends State<_AddSupplierDialog> {
             if (_formKey.currentState!.validate()) {
               _formKey.currentState!.save();
               final newSupplier = await provider.addNewSupplier(name: _name);
+              if (!context.mounted) return;
               Navigator.of(context).pop(newSupplier);
             }
           },

@@ -6,7 +6,7 @@ import 'package:provisions/widgets/supplier_chart.dart';
 import 'package:provisions/widgets/project_type_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:provisions/services/auth_service.dart';
-import 'package:provisions/screens/auth_screen.dart';
+import 'package:provisions/theme.dart';
 
 class DashboardScreen extends StatelessWidget {
   final VoidCallback navigateToHistory;
@@ -25,7 +25,25 @@ class DashboardScreen extends StatelessWidget {
             return Text('Bienvenue, $userName');
           },
         ),
-                actions: [
+        actions: [
+          PopupMenuButton<AppPalette>(
+            icon: const Icon(Icons.palette),
+            onSelected: (value) => context.read<ThemeController>().setPalette(value),
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: AppPalette.blueAmber, child: Text('Bleu & Amber')),
+              PopupMenuItem(value: AppPalette.purplePink, child: Text('Violet & Rose')),
+              PopupMenuItem(value: AppPalette.greenTeal, child: Text('Vert & Teal')),
+              PopupMenuItem(value: AppPalette.redOrange, child: Text('Rouge & Orange')),
+            ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.brightness_6),
+            tooltip: 'Basculer thème',
+            onPressed: () {
+              final controller = context.read<ThemeController>();
+              controller.setMode(controller.mode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light);
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Se déconnecter',
@@ -67,11 +85,16 @@ class DashboardScreen extends StatelessWidget {
             );
           }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeInOut,
+            switchOutCurve: Curves.easeInOut,
+            child: SingleChildScrollView(
+              key: const ValueKey('dashboard_loaded'),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 // Welcome section
                 Card(
                   color: Theme.of(context).colorScheme.primaryContainer, // Use theme color
@@ -252,6 +275,7 @@ class DashboardScreen extends StatelessWidget {
 
                 const SizedBox(height: 32),
               ],
+              ),
             ),
           );
         },

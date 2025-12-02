@@ -53,21 +53,71 @@ class _HomePageState extends State<HomePage> {
     ),
   ];
 
+  final List<NavigationRailDestination> _railDestinations = const [
+    NavigationRailDestination(icon: Icon(Icons.dashboard), label: Text('Tableau de bord')),
+    NavigationRailDestination(icon: Icon(Icons.add_shopping_cart), label: Text('Nouvel Achat')),
+    NavigationRailDestination(icon: Icon(Icons.history), label: Text('Historique')),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: _destinations,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        indicatorColor: Theme.of(context).colorScheme.primaryContainer,
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 900;
+        if (isWide) {
+          return Scaffold(
+            body: Row(
+              children: [
+                NavigationRail(
+                  selectedIndex: _currentIndex,
+                  onDestinationSelected: (index) {
+                    setState(() {
+                      _currentIndex = index;
+                    });
+                  },
+                  destinations: _railDestinations,
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    switchInCurve: Curves.easeInOutCubic,
+                    switchOutCurve: Curves.easeInOutCubic,
+                    child: KeyedSubtree(
+                      key: ValueKey(_currentIndex),
+                      child: _screens[_currentIndex],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        } else {
+          return Scaffold(
+            body: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 350),
+              switchInCurve: Curves.easeInOutCubic,
+              switchOutCurve: Curves.easeInOutCubic,
+              child: KeyedSubtree(
+                key: ValueKey(_currentIndex),
+                child: _screens[_currentIndex],
+              ),
+            ),
+            bottomNavigationBar: NavigationBar(
+              selectedIndex: _currentIndex,
+              onDestinationSelected: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+              destinations: _destinations,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              indicatorColor: Theme.of(context).colorScheme.primaryContainer,
+            ),
+          );
+        }
+      },
     );
   }
 }

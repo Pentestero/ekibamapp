@@ -9,7 +9,7 @@ L'application offre une suite complète d'outils pour une gestion transparente :
 ### Gestion des Achats
 - **Création d'Achats :** Un formulaire dynamique et intuitif pour enregistrer de nouveaux achats.
 - **Ajout d'Articles :** Possibilité d'ajouter plusieurs articles à chaque achat, en spécifiant le produit, le fournisseur, la quantité et le prix.
-- **Champ Client Dynamique :** Un champ "Nom du client" apparaît automatiquement lorsque le type de projet "Client" est sélectionné, assurant un suivi précis.
+- **Champ Client Dynamique :** Un champ "Nom du client" apparaît automatiquement lorsque le type de projet "Client" est sélectionlé, assurant un suivi précis.
 - **Mise à Jour et Suppression :** Modifiez ou supprimez facilement des achats existants directement depuis l'historique.
 
 ### Historique et Suivi
@@ -90,3 +90,11 @@ Avant de lancer l'application, vous devez la connecter à votre propre projet Su
     ```
 
 L'application devrait maintenant démarrer et se connecter à votre instance Supabase.
+
+## Journal des modifications
+
+### Version 1.0.1 - 02/12/2025
+- **Correction du rendu PDF :**
+  - Correction d'un bug visuel où la case à cocher (✓) pour le type de projet ne s'affichait pas dans les factures PDF générées.
+  - Remplacement de l'implémentation personnalisée par le widget `Checkbox` standard de la bibliothèque `pdf` pour garantir un affichage fiable et correct sur toutes les plateformes.
+  - Suppression d'une case à cocher redondante et toujours activée dans la liste des articles du PDF.

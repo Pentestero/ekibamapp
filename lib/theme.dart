@@ -1,179 +1,206 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-// Define a more modern and accessible color palette
-class LightModeColors {
-  static const Color primary = Color(0xFF007BFF); // Vibrant Blue
-  static const Color onPrimary = Color(0xFFFFFFFF);
-  static const Color primaryContainer = Color(0xFFCCE5FF); // Lighter Blue
-  static const Color onPrimaryContainer = Color(0xFF0056B3); // Darker Blue
-  static const Color secondary = Color(0xFF28A745); // Soft Green
-  static const Color onSecondary = Color(0xFFFFFFFF);
-  static const Color tertiary = Color(0xFF6C757D); // Neutral Grey
-  static const Color onTertiary = Color(0xFFFFFFFF);
-  static const Color error = Color(0xFFBA1A1A); // Standard Red
-  static const Color onError = Color(0xFFFFFFFF);
-  static const Color errorContainer = Color(0xFFFFDAD6);
-  static const Color onErrorContainer = Color(0xFF410002);
-  static const Color inversePrimary = Color(0xFF99CCFF); // Complementary for inverse
-  static const Color shadow = Color(0xFF000000);
-  static const Color surface = Color(0xFFF8F9FA); // Light Grey
-  static const Color onSurface = Color(0xFF212529); // Dark Grey
-  static const Color background = Color(0xFFFFFFFF); // Pure White background
-  static const Color onBackground = Color(0xFF212529); // Dark Grey
+enum AppPalette { blueAmber, purplePink, greenTeal, redOrange }
+
+class ThemeController extends ChangeNotifier {
+  AppPalette _palette = AppPalette.blueAmber;
+  ThemeMode _mode = ThemeMode.light;
+
+  AppPalette get palette => _palette;
+  ThemeMode get mode => _mode;
+
+  void setPalette(AppPalette palette) {
+    _palette = palette;
+    notifyListeners();
+  }
+
+  void setMode(ThemeMode mode) {
+    _mode = mode;
+    notifyListeners();
+  }
+
+  ThemeData get lightTheme => _buildTheme(_palette, Brightness.light);
+  ThemeData get darkTheme => _buildTheme(_palette, Brightness.dark);
 }
 
-class DarkModeColors {
-  static const Color primary = Color(0xFF3399FF); // Slightly darker vibrant Blue
-  static const Color onPrimary = Color(0xFFFFFFFF);
-  static const Color primaryContainer = Color(0xFF004085); // Darker Blue
-  static const Color onPrimaryContainer = Color(0xFF99CCFF); // Lighter Blue
-  static const Color secondary = Color(0xFF218838); // Complementary Dark Green
-  static const Color onSecondary = Color(0xFFFFFFFF);
-  static const Color tertiary = Color(0xFF495057); // Darker Grey
-  static const Color onTertiary = Color(0xFFFFFFFF);
-  static const Color error = Color(0xFFFFB4AB); // Standard Red
-  static const Color onError = Color(0xFF690005);
-  static const Color errorContainer = Color(0xFF93000A);
-  static const Color onErrorContainer = Color(0xFFFFDAD6);
-  static const Color inversePrimary = Color(0xFF0056B3); // Complementary for inverse
-  static const Color shadow = Color(0xFF000000);
-  static const Color surface = Color(0xFF212529); // Dark Grey
-  static const Color onSurface = Color(0xFFF8F9FA); // Light Grey
-  static const Color background = Color(0xFF121212); // Very Dark Grey background
-  static const Color onBackground = Color(0xFFF8F9FA); // Light Grey
+ThemeData _buildTheme(AppPalette palette, Brightness brightness) {
+  final seed = switch (palette) {
+    AppPalette.blueAmber => const Color(0xFF3A86FF),
+    AppPalette.purplePink => const Color(0xFF6D28D9),
+    AppPalette.greenTeal => const Color(0xFF2EC4B6),
+    AppPalette.redOrange => const Color(0xFFE63946),
+  };
+
+  final scheme = ColorScheme.fromSeed(seedColor: seed, brightness: brightness);
+
+  final secondary = switch (palette) {
+    AppPalette.blueAmber => const Color(0xFFFFB703),
+    AppPalette.purplePink => const Color(0xFFF72585),
+    AppPalette.greenTeal => const Color(0xFF14B8A6),
+    AppPalette.redOrange => const Color(0xFFFF7F11),
+  };
+  final tertiary = switch (palette) {
+    AppPalette.blueAmber => const Color(0xFF2EC4B6),
+    AppPalette.purplePink => const Color(0xFF64DFDF),
+    AppPalette.greenTeal => const Color(0xFF80ED99),
+    AppPalette.redOrange => const Color(0xFF06D6A0),
+  };
+
+  final cs = scheme.copyWith(secondary: secondary, tertiary: tertiary);
+
+  final textTheme = GoogleFonts.interTextTheme().apply(
+    bodyColor: brightness == Brightness.dark ? cs.onSurface : null,
+    displayColor: brightness == Brightness.dark ? cs.onSurface : null,
+  );
+
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: cs,
+    textTheme: textTheme,
+    scaffoldBackgroundColor: cs.surface,
+    appBarTheme: AppBarTheme(
+      backgroundColor: cs.primary,
+      foregroundColor: cs.onPrimary,
+      elevation: 2,
+      centerTitle: true,
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: cs.surface,
+      indicatorColor: cs.secondaryContainer,
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+    ),
+    navigationRailTheme: NavigationRailThemeData(
+      backgroundColor: cs.surface,
+      selectedIconTheme: IconThemeData(color: cs.primary),
+      selectedLabelTextStyle: TextStyle(color: cs.primary),
+      unselectedIconTheme: IconThemeData(color: cs.secondary),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: cs.secondary,
+        foregroundColor: cs.onSecondary,
+        minimumSize: const Size(48, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: cs.surface,
+      focusedBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: cs.primary, width: 2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+    ),
+    cardTheme: const CardThemeData(
+      elevation: 2,
+      margin: EdgeInsets.all(8),
+    ),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: ZoomPageTransitionsBuilder(),
+        TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
+        TargetPlatform.linux: ZoomPageTransitionsBuilder(),
+        TargetPlatform.macOS: ZoomPageTransitionsBuilder(),
+        TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+      },
+    ),
+    visualDensity: VisualDensity.adaptivePlatformDensity,
+  );
 }
 
-// Font sizes (can be adjusted if needed, keeping current for now)
-class FontSizes {
-  static const double displayLarge = 57.0;
-  static const double displayMedium = 45.0;
-  static const double displaySmall = 36.0;
-  static const double headlineLarge = 32.0;
-  static const double headlineMedium = 28.0; // Adjusted for better hierarchy
-  static const double headlineSmall = 24.0; // Adjusted for better hierarchy
-  static const double titleLarge = 22.0;
-  static const double titleMedium = 18.0;
-  static const double titleSmall = 16.0;
-  static const double labelLarge = 16.0;
-  static const double labelMedium = 14.0;
-  static const double labelSmall = 12.0;
-  static const double bodyLarge = 16.0;
-  static const double bodyMedium = 14.0;
-  static const double bodySmall = 12.0;
-}
+ThemeData get lightTheme {
+  final scheme = ColorScheme.fromSeed(
+    seedColor: const Color(0xFF3A86FF),
+    brightness: Brightness.light,
+  );
 
-ThemeData get lightTheme => ThemeData(
-  useMaterial3: true,
-  colorScheme: const ColorScheme.light(
-    primary: LightModeColors.primary,
-    onPrimary: LightModeColors.onPrimary,
-    primaryContainer: LightModeColors.primaryContainer,
-    onPrimaryContainer: LightModeColors.onPrimaryContainer,
-    secondary: LightModeColors.secondary,
-    onSecondary: LightModeColors.onSecondary,
-    tertiary: LightModeColors.tertiary,
-    onTertiary: LightModeColors.onTertiary,
-    error: LightModeColors.error,
-    onError: LightModeColors.onError,
-    errorContainer: LightModeColors.errorContainer,
-    onErrorContainer: LightModeColors.onErrorContainer,
-    inversePrimary: LightModeColors.inversePrimary,
-    shadow: LightModeColors.shadow,
-    surface: LightModeColors.surface,
-    onSurface: LightModeColors.onSurface,
-  ),
-  brightness: Brightness.light,
-  appBarTheme: AppBarTheme(
-    backgroundColor: LightModeColors.primary, // Use primary color for AppBar
-    foregroundColor: LightModeColors.onPrimary, // Use onPrimary for text/icons
-    elevation: 4, // Add a subtle shadow
-    centerTitle: true,
-  ),
-  cardTheme: CardThemeData( // Changed from CardTheme to CardThemeData
-    elevation: 2,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-  ),
-  inputDecorationTheme: InputDecorationTheme(
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide.none,
+  final vibrant = scheme.copyWith(
+    secondary: const Color(0xFFFFB703),
+    tertiary: const Color(0xFF2EC4B6),
+    surface: const Color(0xFFFDFDFD),
+    primaryContainer: const Color(0xFFE3F2FD),
+    secondaryContainer: const Color(0xFFFFF3E0),
+  );
+
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: vibrant,
+    textTheme: GoogleFonts.interTextTheme(),
+    scaffoldBackgroundColor: vibrant.surface,
+    appBarTheme: AppBarTheme(
+      backgroundColor: vibrant.primary,
+      foregroundColor: vibrant.onPrimary,
+      elevation: 2,
+      centerTitle: true,
     ),
-    filled: true,
-    fillColor: LightModeColors.primaryContainer.withOpacity(0.3),
-    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-  ),
-  elevatedButtonTheme: ElevatedButtonThemeData(
-    style: ElevatedButton.styleFrom(
-      backgroundColor: LightModeColors.primary,
-      foregroundColor: LightModeColors.onPrimary,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: vibrant.surface,
+      indicatorColor: vibrant.secondaryContainer,
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
     ),
-  ),
-  textButtonTheme: TextButtonThemeData(
-    style: TextButton.styleFrom(
-      foregroundColor: LightModeColors.primary,
-      textStyle: const TextStyle(fontSize: 16),
+    navigationRailTheme: NavigationRailThemeData(
+      backgroundColor: vibrant.surface,
+      selectedIconTheme: IconThemeData(color: vibrant.primary),
+      selectedLabelTextStyle: TextStyle(color: vibrant.primary),
+      unselectedIconTheme: IconThemeData(color: vibrant.secondary),
     ),
-  ),
-  // Add more theme properties as needed
-);
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: vibrant.secondary,
+        foregroundColor: vibrant.onSecondary,
+        minimumSize: const Size(48, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: vibrant.surface,
+      focusedBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: vibrant.primary, width: 2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+    ),
+    cardTheme: const CardThemeData(
+      elevation: 2,
+      margin: EdgeInsets.all(8),
+    ),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: ZoomPageTransitionsBuilder(),
+        TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
+        TargetPlatform.linux: ZoomPageTransitionsBuilder(),
+        TargetPlatform.macOS: ZoomPageTransitionsBuilder(),
+        TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+      },
+    ),
+    visualDensity: VisualDensity.adaptivePlatformDensity,
+  );
+}
 
 ThemeData get darkTheme => ThemeData(
   useMaterial3: true,
-  colorScheme: const ColorScheme.dark(
-    primary: DarkModeColors.primary,
-    onPrimary: DarkModeColors.onPrimary,
-    primaryContainer: DarkModeColors.primaryContainer,
-    onPrimaryContainer: DarkModeColors.onPrimaryContainer,
-    secondary: DarkModeColors.secondary,
-    onSecondary: DarkModeColors.onSecondary,
-    tertiary: DarkModeColors.tertiary,
-    onTertiary: DarkModeColors.onTertiary,
-    error: DarkModeColors.error,
-    onError: DarkModeColors.onError,
-    errorContainer: DarkModeColors.errorContainer,
-    onErrorContainer: DarkModeColors.onErrorContainer,
-    inversePrimary: DarkModeColors.inversePrimary,
-    shadow: DarkModeColors.shadow,
-    surface: DarkModeColors.surface,
-    onSurface: DarkModeColors.onSurface,
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: const Color(0xFF007BFF),
+    brightness: Brightness.dark,
   ),
-  brightness: Brightness.dark,
-  appBarTheme: AppBarTheme(
-    backgroundColor: DarkModeColors.primary, // Use primary color for AppBar
-    foregroundColor: DarkModeColors.onPrimary, // Use onPrimary for text/icons
-    elevation: 4, // Add a subtle shadow
-    centerTitle: true,
+  textTheme: GoogleFonts.interTextTheme().apply(
+    bodyColor: Colors.white,
+    displayColor: Colors.white,
   ),
-  cardTheme: CardThemeData( // Changed from CardTheme to CardThemeData
-    elevation: 2,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  appBarTheme: const AppBarTheme(
+    foregroundColor: Colors.white,
   ),
-  inputDecorationTheme: InputDecorationTheme(
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide.none,
-    ),
-    filled: true,
-    fillColor: DarkModeColors.primaryContainer.withOpacity(0.3),
-    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+  pageTransitionsTheme: const PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: ZoomPageTransitionsBuilder(),
+      TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
+      TargetPlatform.linux: ZoomPageTransitionsBuilder(),
+      TargetPlatform.macOS: ZoomPageTransitionsBuilder(),
+      TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+    },
   ),
-  elevatedButtonTheme: ElevatedButtonThemeData(
-    style: ElevatedButton.styleFrom(
-      backgroundColor: DarkModeColors.primary,
-      foregroundColor: DarkModeColors.onPrimary,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-    ),
-  ),
-  textButtonTheme: TextButtonThemeData(
-    style: TextButton.styleFrom(
-      foregroundColor: DarkModeColors.primary,
-      textStyle: const TextStyle(fontSize: 16),
-    ),
-  ),
-  // Add more theme properties as needed
+  visualDensity: VisualDensity.adaptivePlatformDensity,
 );

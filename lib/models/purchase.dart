@@ -43,7 +43,7 @@ class Purchase {
       'creatorInitials': creatorInitials,
       'demander': demander,
       'projectType': projectType,
-      'clientName': clientName,
+      // 'clientName': clientName, // Temporarily disabled to prevent DB error
       'payment_method': paymentMethod,
       'comments': comments,
       'createdAt': createdAt.millisecondsSinceEpoch,
@@ -57,6 +57,10 @@ class Purchase {
   }
 
   static Purchase fromMap(Map<String, dynamic> map) {
+    final List<PurchaseItem> items = (map['purchase_items'] as List<dynamic>?)
+        ?.map((itemMap) => PurchaseItem.fromMap(itemMap as Map<String, dynamic>))
+        .toList() ?? [];
+
     return Purchase(
       id: map['id'] as int?,
       requestNumber: map['request_number'] as String?,
@@ -69,6 +73,7 @@ class Purchase {
       paymentMethod: map['payment_method'] as String? ?? '',
       comments: map['comments'] as String? ?? '',
       createdAt: map['created_at'] != null ? DateTime.parse(map['created_at'] as String) : DateTime.now(),
+      items: items,
     );
   }
 
