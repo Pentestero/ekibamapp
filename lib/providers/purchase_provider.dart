@@ -15,6 +15,7 @@ class PurchaseProvider with ChangeNotifier {
   User? _user;
 
   List<Purchase> _purchases = [];
+  List<Purchase> _allPurchases = []; // For admin view
   List<Supplier> _suppliers = [];
   List<String> _requesters = [];
   List<String> _paymentMethods = [];
@@ -35,6 +36,7 @@ class PurchaseProvider with ChangeNotifier {
   List<PurchaseItem> _itemsBuilder = [];
 
   List<Purchase> get purchases => _purchases;
+  List<Purchase> get allPurchases => _allPurchases; // Getter for admin
   List<Supplier> get suppliers => _suppliers;
   List<String> get requesters => _requesters;
   List<String> get projectTypes => _projectTypes;
@@ -54,6 +56,14 @@ class PurchaseProvider with ChangeNotifier {
   int get totalSpent =>
       _purchases.fold(0, (sum, p) => sum + p.grandTotal);
   int get totalPurchases => _purchases.length;
+
+  // Admin analytics
+  int get grandTotalSpentAll => _allPurchases.fold(0, (sum, p) => sum + p.grandTotal);
+  int get totalNumberOfPurchasesAll => _allPurchases.length;
+  Map<String, int> get topSpenders => _calculateAdminAnalytics(
+        (p) => p.demander, (p) => p.grandTotal);
+  Map<String, int> get topPaymentMethods => _calculateAdminAnalytics(
+        (p) => p.paymentMethod, (p) => p.grandTotal);
 
   Purchase get purchaseBuilder => _purchaseBuilder;
   List<PurchaseItem> get itemsBuilder => _itemsBuilder;
@@ -91,6 +101,27 @@ class PurchaseProvider with ChangeNotifier {
       _errorMessage = '';
     } catch (e) {
       _errorMessage = 'Erreur chargement achats: $e';
+    } finally {
+      if (notify) {
+        _isLoading = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> loadAllPurchases({bool notify = true}) async {
+    if (_user == null) return;
+    if (notify) {
+      _isLoading = true;
+      _errorMessage = '';
+      notifyListeners();
+    }
+
+    try {
+      _allPurchases = await _dbService.getAllPurchasesForAdmin();
+      _errorMessage = '';
+    } catch (e) {
+      _errorMessage = 'Erreur chargement de tous les achats (admin): $e';
     } finally {
       if (notify) {
         _isLoading = false;
@@ -231,15 +262,9 @@ class PurchaseProvider with ChangeNotifier {
 
   Future<Purchase> _preparePurchaseForSaving() async {
     final now = DateTime.now();
-    final date = _purchaseBuilder.date;
-
-    final dailyIndex = await _dbService.getNextDailyPurchaseIndex(date);
-    final refDA =
-        'DA-${DateFormat('ddMMyyyy').format(date)}-$dailyIndex';
 
     return _purchaseBuilder.copyWith(
       id: _editingPurchaseId,
-      refDA: refDA,
       demander: _user?.userMetadata?['name'] ?? _purchaseBuilder.demander,
       items: _itemsBuilder,
       createdAt: _editingPurchaseId == null ? now : _purchaseBuilder.createdAt,
@@ -315,25 +340,36 @@ class PurchaseProvider with ChangeNotifier {
     if (index < 0 || index >= _itemsBuilder.length) return;
     final oldItem = _itemsBuilder[index];
 
-    final newCategory = category ?? oldItem.category;
-    final newSubCategory1 = subCategory1 ?? oldItem.subCategory1;
+    // Determine the effective supplier ID for lookup
+    // If supplierId is provided, use it. Otherwise, use the old item's supplierId.
+    // Default to -1 (Aucun) if both are null/invalid to ensure a lookup always succeeds.
+    final int effectiveSupplierId = supplierId ?? oldItem.supplierId ?? -1;
 
-    final finalSupplierId = supplierId ?? oldItem.supplierId;
-    final Supplier supplier = _suppliers.firstWhere((s) => s.id == finalSupplierId,
-        orElse: () => _suppliers.first);
-    // If the selected supplier has id -1 (Aucun), set newSupplierId to null for DB storage
-    final int? newSupplierId = (supplier.id == -1) ? null : supplier.id;
-    final String? newSupplierName = (supplier.id == -1) ? null : supplier.name;
+    // Find the supplier. If not found, default to the "Aucun" supplier.
+    final Supplier selectedSupplier = _suppliers.firstWhere(
+      (s) => s.id == effectiveSupplierId,
+      orElse: () => _suppliers.firstWhere((s) => s.id == -1), // Should always exist
+    );
 
-    _itemsBuilder[index] = oldItem.copyWith(
-      category: newCategory,
-      subCategory1: newSubCategory1,
-      subCategory2: subCategory2,
-      supplierId: newSupplierId,
-      quantity: quantity,
-      unit: unit,
-      unitPrice: unitPrice,
-      supplierName: newSupplierName,
+    // Determine the supplierId and supplierName to save in PurchaseItem
+    // These should be null if "Aucun" is selected.
+    final int? itemSupplierId = (selectedSupplier.id == -1) ? null : selectedSupplier.id;
+    final String? itemSupplierName = (selectedSupplier.id == -1) ? null : selectedSupplier.name;
+
+    _itemsBuilder[index] = PurchaseItem(
+      id: oldItem.id, // Preserve existing ID
+      localId: oldItem.localId, // Preserve local ID
+      purchaseId: oldItem.purchaseId, // Preserve purchase ID
+      category: category ?? oldItem.category,
+      subCategory1: subCategory1 ?? oldItem.subCategory1,
+      subCategory2: subCategory2, // Directly assign, can be null
+      supplierId: itemSupplierId, // Explicitly set null for "Aucun"
+      quantity: quantity ?? oldItem.quantity,
+      unit: unit ?? oldItem.unit,
+      unitPrice: unitPrice ?? oldItem.unitPrice,
+      paymentFee: oldItem.paymentFee,
+      supplierName: itemSupplierName, // Explicitly set null for "Aucun"
+      comment: oldItem.comment,
     );
     notifyListeners();
   }
@@ -341,7 +377,21 @@ class PurchaseProvider with ChangeNotifier {
   void updateItemComment(int index, String? comment) {
     if (index < 0 || index >= _itemsBuilder.length) return;
     final oldItem = _itemsBuilder[index];
-    _itemsBuilder[index] = oldItem.copyWith(comment: comment);
+    _itemsBuilder[index] = PurchaseItem(
+      id: oldItem.id,
+      localId: oldItem.localId,
+      purchaseId: oldItem.purchaseId,
+      category: oldItem.category,
+      subCategory1: oldItem.subCategory1,
+      subCategory2: oldItem.subCategory2,
+      supplierId: oldItem.supplierId,
+      quantity: oldItem.quantity,
+      unit: oldItem.unit,
+      unitPrice: oldItem.unitPrice,
+      paymentFee: oldItem.paymentFee,
+      supplierName: oldItem.supplierName,
+      comment: (comment == null || comment.isEmpty) ? null : comment, // Explicitly nullify if empty
+    );
     notifyListeners();
   }
 
@@ -478,6 +528,16 @@ class PurchaseProvider with ChangeNotifier {
     for (final item in items) {
       final key = getKey(item);
       totals[key] = (totals[key] ?? 0) + (getValue(item) as int);
+    }
+    return totals;
+  }
+
+  Map<String, int> _calculateAdminAnalytics(
+      String Function(Purchase) getKey, int Function(Purchase) getValue) {
+    final Map<String, int> totals = {};
+    for (final purchase in _allPurchases) {
+      final key = getKey(purchase);
+      totals[key] = (totals[key] ?? 0) + getValue(purchase);
     }
     return totals;
   }

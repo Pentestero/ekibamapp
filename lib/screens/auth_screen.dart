@@ -10,47 +10,108 @@ class AuthScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface, // Use theme background color
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const AppBrand(),
-              const SizedBox(height: 16), // Adjusted spacing
-              Text(
-                'Gérez vos approvisionnements simplement',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface, // Ensure text color is visible
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth >= 600) {
+            // Desktop/Wide screen layout
+            return Row(
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      image: const DecorationImage(
+                        image: AssetImage('assets/images/EKIBAM.jpg'), // Use your app's background image
+                        fit: BoxFit.cover,
+                        opacity: 0.3,
+                      ),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AppBrand(
+                            height: 80, // Larger logo for desktop
+                            showText: true,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Gérez vos approvisionnements\nsimplement et efficacement',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 48), // Adjusted spacing
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SignUpScreen()));
-                },
-                // Removed custom style to use theme's ElevatedButtonThemeData
-                child: const Text('S\'inscrire'),
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SignInScreen()));
-                },
-                // Removed custom style to use theme's OutlinedButtonThemeData (if defined, otherwise default)
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary, // Use primary color for text
-                  side: BorderSide(color: Theme.of(context).colorScheme.primary), // Use primary color for border
-                  padding: const EdgeInsets.symmetric(vertical: 12), // Adjusted padding for consistency
+                Expanded(
+                  flex: 1,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 400), // Max width for form on desktop
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24.0),
+                        child: _buildAuthButtons(context),
+                      ),
+                    ),
+                  ),
                 ),
-                child: const Text('Se connecter'),
+              ],
+            );
+          } else {
+            // Mobile/Narrow screen layout
+            return Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: _buildAuthButtons(context),
               ),
-            ],
-          ),
-        ),
+            );
+          }
+        },
       ),
+    );
+  }
+
+  Widget _buildAuthButtons(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (MediaQuery.of(context).size.width < 600) ...[ // Only show AppBrand on mobile layout
+          const AppBrand(),
+          const SizedBox(height: 16),
+          Text(
+            'Gérez vos approvisionnements simplement',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 48),
+        ],
+        ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SignUpScreen()));
+          },
+          child: const Text('S\'inscrire'),
+        ),
+        const SizedBox(height: 16),
+        OutlinedButton(
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SignInScreen()));
+          },
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Theme.of(context).colorScheme.primary,
+            side: BorderSide(color: Theme.of(context).colorScheme.primary),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+          child: const Text('Se connecter'),
+        ),
+      ],
     );
   }
 }

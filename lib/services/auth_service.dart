@@ -84,4 +84,37 @@ class AuthService with ChangeNotifier {
     // For now, we just sign the user out.
     await signOut();
   }
+
+  /// Envoie un email de réinitialisation de mot de passe à l'utilisateur.
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _supabase.auth.resetPasswordForEmail(
+        email,
+        redirectTo: 'http://localhost:3000', // Explicitly set redirect to ensure consistency
+      );
+    } on AuthException catch (e) {
+      debugPrint("AuthService Password Reset Error: ${e.message}");
+      rethrow;
+    } catch (e) {
+      debugPrint("AuthService Password Reset Generic Error: $e");
+      rethrow;
+    }
+  }
+
+  /// Met à jour le mot de passe de l'utilisateur actuel.
+  Future<void> updateUserPassword(String newPassword) async {
+    try {
+      await _supabase.auth.updateUser(
+        UserAttributes(
+          password: newPassword,
+        ),
+      );
+    } on AuthException catch (e) {
+      debugPrint("AuthService Update User Password Error: ${e.message}");
+      rethrow;
+    } catch (e) {
+      debugPrint("AuthService Update User Password Generic Error: $e");
+      rethrow;
+    }
+  }
 }

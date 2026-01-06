@@ -19,6 +19,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  String? _errorMessage; // Add error message state variable
 
   final _emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
 
@@ -46,7 +47,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null; // Clear previous errors
+    });
 
     try {
       final response = await AuthService.instance.signUp(
@@ -60,11 +64,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
     } on AuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: Colors.red));
+        setState(() {
+          _errorMessage = e.message; // Set error message
+        });
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Une erreur inattendue est survenue.'), backgroundColor: Colors.red));
+        setState(() {
+          _errorMessage = 'Une erreur inattendue est survenue.'; // Generic error
+        });
       }
     } finally {
       if (mounted) {
@@ -84,14 +92,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(controller: _nameController, decoration: const InputDecoration(labelText: 'Nom complet', prefixIcon: Icon(Icons.person)), validator: _validateName, textCapitalization: TextCapitalization.words),
+              TextFormField(controller: _nameController, decoration: const InputDecoration(labelText: 'Nom complet', hintText: 'Entrez votre nom complet', prefixIcon: Icon(Icons.person)), validator: _validateName, textCapitalization: TextCapitalization.words),
               const SizedBox(height: 16),
-              TextFormField(controller: _emailController, decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)), validator: _validateEmail, keyboardType: TextInputType.emailAddress),
+              TextFormField(controller: _emailController, decoration: const InputDecoration(labelText: 'Email', hintText: 'exemple@domaine.com', prefixIcon: Icon(Icons.email)), validator: _validateEmail, keyboardType: TextInputType.emailAddress),
               const SizedBox(height: 16),
-              TextFormField(controller: _passwordController, obscureText: !_isPasswordVisible, decoration: InputDecoration(labelText: 'Mot de passe', prefixIcon: const Icon(Icons.lock), suffixIcon: IconButton(icon: Icon(_isPasswordVisible ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible))), validator: _validatePassword),
+              TextFormField(controller: _passwordController, obscureText: !_isPasswordVisible, decoration: InputDecoration(labelText: 'Mot de passe', hintText: '6+ caractères', prefixIcon: const Icon(Icons.lock), suffixIcon: IconButton(icon: Icon(_isPasswordVisible ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible))), validator: _validatePassword),
               const SizedBox(height: 16),
-              TextFormField(controller: _confirmPasswordController, obscureText: !_isConfirmPasswordVisible, decoration: InputDecoration(labelText: 'Confirmer le mot de passe', prefixIcon: const Icon(Icons.lock_outline), suffixIcon: IconButton(icon: Icon(_isConfirmPasswordVisible ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible))), validator: _validateConfirmPassword),
-              const SizedBox(height: 32),
+              TextFormField(controller: _confirmPasswordController, obscureText: !_isConfirmPasswordVisible, decoration: InputDecoration(labelText: 'Confirmer le mot de passe', hintText: 'Retapez votre mot de passe', prefixIcon: const Icon(Icons.lock_outline), suffixIcon: IconButton(icon: Icon(_isConfirmPasswordVisible ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible))), validator: _validateConfirmPassword),
+              const SizedBox(height: 24), // Space before error message or button
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ElevatedButton(onPressed: _isLoading ? null : _submit, child: _isLoading ? const CircularProgressIndicator() : const Text('S\'inscrire')),
             ],
           ),

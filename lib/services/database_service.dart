@@ -30,10 +30,25 @@ class DatabaseService {
     }
   }
 
+  Future<List<Purchase>> getAllPurchasesForAdmin() async {
+    try {
+      final data = await _supabase
+          .from('purchases')
+          .select('*, purchase_items(*, suppliers(*))')
+          .order('created_at', ascending: false);
+
+      final purchases = data.map((p) => Purchase.fromMap(p)).toList();
+      return purchases;
+    } catch (e) {
+      debugPrint("Erreur lors de la récupération de tous les achats (admin): $e");
+      rethrow;
+    }
+  }
+
   Future<Purchase> addPurchase(Purchase purchase, String userId) async {
     try {
       final purchaseToInsert = {
-        'ref_da': purchase.refDA,
+        // 'ref_da' is initially null
         'date': purchase.date.toIso8601String(),
         'demander': purchase.demander,
         'project_type': purchase.projectType,
@@ -46,6 +61,7 @@ class DatabaseService {
         'user_id': userId,
       };
 
+      // 1. Insert purchase to get the unique ID
       final insertedPurchase = await _supabase
           .from('purchases')
           .insert(purchaseToInsert)
@@ -54,6 +70,19 @@ class DatabaseService {
 
       final newPurchaseId = insertedPurchase['id'];
 
+      // 2. Generate the new Ref DA
+      final dateFormatted = DateFormat('ddMMyyyy').format(purchase.date);
+      final newRefDA = 'DA-$dateFormatted-$newPurchaseId';
+
+      // 3. Update the purchase with the new Ref DA
+      final updatedPurchase = await _supabase
+          .from('purchases')
+          .update({'ref_da': newRefDA})
+          .eq('id', newPurchaseId)
+          .select()
+          .single();
+          
+      // 4. Insert purchase items
       if (purchase.items.isNotEmpty) {
         final itemsToInsert = purchase.items.map((item) => {
           'purchase_id': newPurchaseId,
@@ -71,7 +100,8 @@ class DatabaseService {
         await _supabase.from('purchase_items').insert(itemsToInsert);
       }
 
-      return purchase.copyWith(id: newPurchaseId);
+      // 5. Return the full purchase object with the new Ref DA
+      return purchase.copyWith(id: newPurchaseId, refDA: newRefDA);
     } catch (e) {
       debugPrint("Erreur lors de l'ajout de l'achat: $e");
       rethrow;
@@ -133,27 +163,6 @@ class DatabaseService {
     } catch (e) {
       debugPrint("Erreur lors de la suppression de l'achat: $e");
       rethrow;
-    }
-  }
-
-  Future<int> getNextDailyPurchaseIndex(DateTime date) async {
-    final dateFormatted = DateFormat('yyyy-MM-dd').format(date);
-    try {
-      final response = await _supabase.rpc(
-        'get_daily_purchase_count',
-        params: {'p_date': dateFormatted},
-      );
-      return (response as int) + 1;
-    } catch (e) {
-      debugPrint("Erreur getNextDailyPurchaseIndex: $e");
-      final PostgrestResponse response = await _supabase
-          .from('purchases')
-          .select() // Explicitly call select() to get PostgrestFilterBuilder
-          .eq('user_id', _supabase.auth.currentUser!.id) // Now eq() is available
-          .gte('created_at', '$dateFormatted 00:00:00')
-          .lte('created_at', '$dateFormatted 23:59:59')
-          .count(CountOption.exact); // This count is a parameter for the response
-      return response.count! + 1;
     }
   }
 
@@ -249,6 +258,26 @@ class DatabaseService {
     } catch (e) {
       debugPrint("Erreur lors de l'insertion de la catégorie: $e");
       rethrow;
+    }
+  }
+
+  /// Vérifie si l'utilisateur actuel est un administrateur en consultant la table app_admins.
+  Future<bool> isCurrentUserAdmin() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return false;
+
+    try {
+      final data = await _supabase
+          .from('app_admins')
+          .select('user_id')
+          .eq('user_id', userId)
+          .single();
+      return data != null; // If a row is returned, the user is an admin
+    } catch (e) {
+      // If no row is found, a PostgrestException might be thrown (no rows)
+      // or other errors. In any case, if we can't confirm admin, assume false.
+      debugPrint("Erreur vérification admin: $e");
+      return false;
     }
   }
 }

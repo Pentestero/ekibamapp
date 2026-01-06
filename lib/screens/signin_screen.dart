@@ -65,10 +65,52 @@ class _SignInScreenState extends State<SignInScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(controller: _emailController, decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)), validator: (value) => (value?.isEmpty ?? true) ? 'Champ requis' : null, keyboardType: TextInputType.emailAddress),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  hintText: 'exemple@domaine.com',
+                  prefixIcon: Icon(Icons.email),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez entrer un email';
+                  }
+                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                    return 'Email invalide';
+                  }
+                  return null;
+                },
+                keyboardType: TextInputType.emailAddress,
+              ),
               const SizedBox(height: 16),
-              TextFormField(controller: _passwordController, obscureText: !_isPasswordVisible, decoration: InputDecoration(labelText: 'Mot de passe', prefixIcon: const Icon(Icons.lock), suffixIcon: IconButton(icon: Icon(_isPasswordVisible ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible))), validator: (value) => (value?.isEmpty ?? true) ? 'Champ requis' : null),
-              const SizedBox(height: 24),
+              TextFormField(
+                controller: _passwordController,
+                obscureText: !_isPasswordVisible,
+                decoration: InputDecoration(
+                  labelText: 'Mot de passe',
+                  hintText: '6+ caractères',
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(_isPasswordVisible ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.length < 6) {
+                    return 'Le mot de passe doit contenir au moins 6 caractères';
+                  }
+                  return null;
+                },
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _showForgotPasswordDialog,
+                  child: const Text('Mot de passe oublié ?'),
+                ),
+              ),
+              const SizedBox(height: 16),
               if (_errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
@@ -85,4 +127,102 @@ class _SignInScreenState extends State<SignInScreen> {
       ),
     );
   }
+
+  void _showForgotPasswordDialog() {
+    final TextEditingController emailResetController = TextEditingController();
+    final _formKeyDialog = GlobalKey<FormState>();
+    bool dialogLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Réinitialiser le mot de passe'),
+              content: Form(
+                key: _formKeyDialog,
+                child: TextFormField(
+                  controller: emailResetController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Veuillez entrer votre email';
+                    }
+                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                      return 'Email invalide';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Annuler'),
+                ),
+                ElevatedButton(
+                  onPressed: dialogLoading
+                      ? null
+                      : () async {
+                          if (_formKeyDialog.currentState!.validate()) {
+                            setDialogState(() {
+                              dialogLoading = true;
+                            });
+                            try {
+                              await AuthService.instance.sendPasswordResetEmail(emailResetController.text.trim());
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Un lien de réinitialisation a été envoyé à votre email.'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                                Navigator.of(context).pop();
+                              }
+                            } on AuthException catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Erreur: ${e.message}'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Une erreur inattendue est survenue.'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            } finally {
+                              setDialogState(() {
+                                dialogLoading = false;
+                              });
+                            }
+                          }
+                        },
+                  child: dialogLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Envoyer'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 }
+

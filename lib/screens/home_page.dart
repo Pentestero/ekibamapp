@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provisions/providers/purchase_provider.dart';
+import 'package:provisions/services/database_service.dart';
 import 'package:provisions/screens/dashboard_screen.dart';
 import 'package:provisions/screens/purchase_form_screen.dart';
 import 'package:provisions/screens/history_screen.dart';
+import 'package:provisions/screens/admin_dashboard_screen.dart';
 
 class HomePage extends StatefulWidget {
   final User user;
@@ -16,20 +18,29 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-  late final List<Widget> _screens;
+  bool _isAdmin = false;
+  
+  late List<Widget> _screens;
+  late List<NavigationDestination> _destinations;
+  late List<NavigationRailDestination> _railDestinations;
+
 
   @override
   void initState() {
     super.initState();
-    _screens = [
-      DashboardScreen(navigateToHistory: () => _navigateTo(2)),
-      const PurchaseFormScreen(),
-      const HistoryScreen(),
-    ];
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Initialize the provider with the user from the widget.
       context.read<PurchaseProvider>().initialize(widget.user);
+      _checkAdminStatus();
     });
+  }
+
+  void _checkAdminStatus() async {
+    final isAdmin = await DatabaseService.instance.isCurrentUserAdmin();
+    if (mounted) {
+      setState(() {
+        _isAdmin = isAdmin;
+      });
+    }
   }
 
   void _navigateTo(int index) {
@@ -38,29 +49,60 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  final List<NavigationDestination> _destinations = [
-    const NavigationDestination(
-      icon: Icon(Icons.dashboard),
-      label: 'Tableau de bord',
-    ),
-    const NavigationDestination(
-      icon: Icon(Icons.add_shopping_cart),
-      label: 'Nouvel Achat',
-    ),
-    const NavigationDestination(
-      icon: Icon(Icons.history),
-      label: 'Historique',
-    ),
-  ];
+  void _buildNavItems() {
+    _screens = [
+      DashboardScreen(navigateToHistory: () => _navigateTo(2)),
+      const PurchaseFormScreen(),
+      const HistoryScreen(),
+      if (_isAdmin) const AdminDashboardScreen(),
+    ];
 
-  final List<NavigationRailDestination> _railDestinations = const [
-    NavigationRailDestination(icon: Icon(Icons.dashboard), label: Text('Tableau de bord')),
-    NavigationRailDestination(icon: Icon(Icons.add_shopping_cart), label: Text('Nouvel Achat')),
-    NavigationRailDestination(icon: Icon(Icons.history), label: Text('Historique')),
-  ];
+    _destinations = [
+      const NavigationDestination(
+        icon: Icon(Icons.dashboard),
+        label: 'Tableau de bord',
+      ),
+      const NavigationDestination(
+        icon: Icon(Icons.add_shopping_cart),
+        label: 'Nouvel Achat',
+      ),
+      const NavigationDestination(
+        icon: Icon(Icons.history),
+        label: 'Historique',
+      ),
+      if (_isAdmin)
+        const NavigationDestination(
+          icon: Icon(Icons.admin_panel_settings),
+          label: 'Admin',
+        ),
+    ];
+
+    _railDestinations = [
+      const NavigationRailDestination(
+        icon: Icon(Icons.dashboard),
+        label: Text('Tableau de bord'),
+      ),
+      const NavigationRailDestination(
+        icon: Icon(Icons.add_shopping_cart),
+        label: Text('Nouvel Achat'),
+      ),
+      const NavigationRailDestination(
+        icon: Icon(Icons.history),
+        label: Text('Historique'),
+      ),
+      if (_isAdmin)
+        const NavigationRailDestination(
+          icon: Icon(Icons.admin_panel_settings),
+          label: Text('Admin'),
+        ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Build navigation items based on admin status
+    _buildNavItems();
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 900;

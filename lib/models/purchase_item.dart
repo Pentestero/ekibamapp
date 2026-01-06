@@ -35,6 +35,9 @@ class PurchaseItem {
 
   int get total => ((quantity * unitPrice) + paymentFee).round();
 
+  int get localId => _localId; // Public getter for _localId
+
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,

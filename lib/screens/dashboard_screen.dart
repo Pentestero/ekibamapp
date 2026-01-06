@@ -153,6 +153,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   color: Theme.of(context).colorScheme.onPrimaryContainer, // Use theme color
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
@@ -274,12 +275,14 @@ class _DashboardScreenState extends State<DashboardScreen>
                       title: Text(
                         '${purchase.refDA ?? 'Achat'} de ${purchase.items.length} article(s)',
                         style: Theme.of(context).textTheme.titleMedium, // Use theme text style
+                        overflow: TextOverflow.ellipsis, // Added overflow handling
                       ),
                       subtitle: Text(
                         'Demandeur: ${purchase.demander} • Projet: ${purchase.projectType}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant, // Use theme color
                         ),
+                        overflow: TextOverflow.ellipsis, // Added overflow handling
                       ),
                       trailing: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -291,10 +294,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).colorScheme.primary, // Use theme color
                             ),
+                            overflow: TextOverflow.ellipsis, // Added overflow handling
                           ),
                           Text(
                             DateFormat('dd/MM/yyyy').format(purchase.date),
                             style: Theme.of(context).textTheme.bodySmall,
+                            overflow: TextOverflow.ellipsis, // Added overflow handling
                           ),
                         ],
                       ),

@@ -6,6 +6,7 @@ import 'package:provisions/theme.dart';
 import 'package:provisions/screens/home_page.dart';
 import 'package:provisions/screens/auth_screen.dart';
 import 'package:provisions/screens/splash_screen.dart';
+import 'package:provisions/screens/reset_password_screen.dart'; // Import the new screen
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -44,6 +45,16 @@ class MyApp extends StatelessWidget {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const SplashScreen();
+            }
+
+            // Check for password recovery link in URL fragment for implicit flow
+            final uri = Uri.parse(Uri.base.toString());
+            final fragment = uri.fragment; 
+            final fragmentParams = Uri.splitQueryString(fragment);
+
+            if (fragmentParams['type'] == 'recovery' && fragmentParams.containsKey('access_token')) {
+              // Supabase SDK automatically handles session when access_token is present in URL
+              return const ResetPasswordScreen();
             }
 
             final session = snapshot.data?.session;

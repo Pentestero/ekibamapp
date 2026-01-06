@@ -9,14 +9,15 @@ L'application offre une suite complète d'outils pour une gestion transparente :
 - **Gestion des Achats :** Un formulaire de saisie complet et responsive pour créer et éditer les demandes d'achat.
 - **Hiérarchie de Catégories :** Un système de catégories à 3 niveaux (`Catégorie` -> `Sous-catégorie 1` -> `Article`) pour une classification précise des dépenses.
 - **Gestion Dynamique des Données :** Possibilité d'ajouter de nouvelles **Catégories**, de nouveaux **Fournisseurs** et de nouveaux **Modes de Paiement** directement depuis l'interface utilisateur.
-- **Génération de Référence Unique :** Création automatique d'une `Ref DA` unique pour chaque nouvel achat, au format `DA-JJMMAAAA-X`.
+- **Génération de Référence Unique :** Création automatique d'une `Ref DA` globalement unique pour chaque nouvel achat.
 - **Historique et Suivi :** Un écran d'historique responsive liste tous les achats passés avec des filtres par période (semaine, mois).
 - **Actions Rapides :** Chaque achat dispose de boutons pour générer une "Demande d'Achat" PDF, modifier ou supprimer l'enregistrement.
 - **Export et Rapports :** Exportez un rapport global des dépenses au format `.xlsx` ou générez des PDF individuels pour chaque demande d'achat.
 - **Tableau de Bord (Dashboard) :** Des graphiques et indicateurs clés présentent des statistiques sur les dépenses par fournisseur et par type de projet.
 - **Interface Personnalisable :** Changez le thème de couleurs et basculez entre le mode clair et sombre.
-- **Authentification Sécurisée :** Connexion et inscription des utilisateurs pour sécuriser l'accès aux données.
+- **Authentification Sécurisée :** Connexion, inscription et réinitialisation de mot de passe pour sécuriser l'accès aux données.
 - **Guide d'utilisation intégré :** Une section d'aide est disponible directement dans l'application pour guider les utilisateurs.
+- **Tableau de Bord Administrateur :** Un dashboard sécurisé, visible uniquement par les admins, permettant de voir, rechercher, et exporter tous les achats de tous les utilisateurs.
 
 ## 📖 Guide d'utilisation
 
@@ -31,6 +32,12 @@ Pour une gestion claire des informations de paiement et du budget, l'application
 *   **Champ "Destinataire Budget" (dans le formulaire) :**
     *   Ce champ est une liste déroulante où vous pouvez sélectionner une personne ou un service responsable du budget si cela est différent du "Demandeur" (l'utilisateur connecté).
     *   La valeur sélectionnée ici n'apparaît **que dans le PDF de la "Demande d'Achat"** et uniquement si elle est différente du "Demandeur". Elle n'est **jamais** utilisée dans les rapports Excel.
+
+## 🚧 Fonctionnalités en Cours
+
+- **Amélioration du Tableau de Bord Administrateur :**
+  - Ajout de statistiques avancées (ex: "Top 5 des demandeurs", "Top 5 des méthodes de paiement").
+  - Intégration de graphiques pour visualiser ces nouvelles statistiques.
 
 ## 🛠️ Technologies Utilisées
 
@@ -50,36 +57,21 @@ Suivez ces étapes pour lancer le projet sur votre machine locale.
 
 ### 1. Configuration du Backend (Supabase)
 
-Avant de lancer l'application, vous devez la connecter à votre propre projet Supabase.
-
 1.  Créez un projet sur [Supabase](https://app.supabase.com/).
-2.  Dans l'éditeur SQL, exécutez les commandes fournies pour créer et configurer les tables (`purchases`, `purchase_items`, `suppliers`, `categories`, `payment_methods`, etc.). Assurez-vous que les politiques de sécurité (RLS) sont activées et configurées.
+2.  Dans l'éditeur SQL, exécutez les commandes fournies pour créer les tables (`purchases`, `purchase_items`, etc.) et les politiques de sécurité (RLS).
 3.  Récupérez votre **URL de projet** et votre **clé publique anonyme (anon public key)** depuis les paramètres API de votre projet Supabase.
 
 ### 2. Configuration du Frontend (Flutter)
 
-1.  Clonez ce dépôt :
-    ```sh
-    git clone <URL_DU_DEPOT>
-    cd ekibamapp
-    ```
-
+1.  Clonez ce dépôt.
 2.  Modifiez le fichier `lib/main.dart` pour y insérer vos propres clés Supabase :
     ```dart
     // lib/main.dart
-
-    void main() async {
-      WidgetsFlutterBinding.ensureInitialized();
-
-      await Supabase.initialize(
-        url: 'VOTRE_URL_SUPABASE', // Remplacez par votre URL
-        anonKey: 'VOTRE_CLE_ANON_SUPABASE', // Remplacez par votre clé
-      );
-
-      runApp(const MyApp());
-    }
+    await Supabase.initialize(
+      url: 'VOTRE_URL_SUPABASE',
+      anonKey: 'VOTRE_CLE_ANON_SUPABASE',
+    );
     ```
-    *(Pour une meilleure pratique, il est recommandé de stocker ces clés dans des variables d'environnement ou un fichier de configuration non versionné).*
 
 ### 3. Lancement de l'Application
 
@@ -88,29 +80,30 @@ Avant de lancer l'application, vous devez la connecter à votre propre projet Su
     flutter pub get
     ```
 
-2.  Lancez l'application sur l'appareil de votre choix (Chrome pour le web) :
+2.  Lancez l'application sur le web avec un port fixe :
     ```sh
-    flutter run -d chrome
+    flutter run -d chrome --web-hostname localhost --web-port 3000
     ```
-
-L'application devrait maintenant démarrer et se connecter à votre instance Supabase.
 
 ## Journal des modifications
 
-### Version 1.2.0 - 31/12/2025
+### Version 1.3.0 - 31/12/2025
+- **Mise en Place du Rôle Administrateur**
+  - **Gestion des Rôles :** Implémentation d'un système de rôles admin via une table `app_admins` dans la base de données.
+  - **Mise à Jour des Politiques de Sécurité (RLS) :** Les politiques de sécurité ont été mises à jour pour permettre aux administrateurs de voir toutes les données des achats.
+- **Création du Tableau de Bord Administrateur**
+  - **Nouvel Écran Admin :** Un nouvel écran "Dashboard Admin" a été créé, visible uniquement par les utilisateurs admins.
+  - **Vue Globale :** Le tableau de bord admin affiche désormais tous les achats de tous les utilisateurs, avec des indicateurs clés globaux.
+  - **Détails des Achats :** Chaque achat dans la liste admin est cliquable et mène à une page de détail.
+  - **Fonctionnalités de Recherche et Export :** Une barre de recherche et un bouton pour exporter toutes les données vers Excel ont été ajoutés.
 - **Améliorations de l'Interface et de l'Expérience Utilisateur**
-  - **Gestion de la Responsivité :** Mise à jour des écrans principaux (Tableau de bord, Formulaire d'achat, Historique) pour une meilleure adaptation aux différentes tailles d'écran (web, mobile).
-  - **Gestion des valeurs monétaires :** Toutes les sommes sont maintenant gérées et affichées comme des entiers (FCFA) dans toute l'application et les fichiers exportés.
-  - **Limite de Mots pour les Commentaires :** Une limite de 150 mots est maintenant appliquée aux champs de commentaires.
-  - **Amélioration des Exports PDF :** Le nom du fichier est maintenant "Demande_Achat" et un champ "Destinataire Budget" a été ajouté, dérivé du champ "Destinataire Budget" du formulaire.
-- **Personnalisation et Aide**
-  - **Nouveau Splash Screen :** Un écran de chargement avec le logo de l'entreprise a été ajouté.
-  - **Icônes d'Application :** Remplacement des icônes par défaut de Flutter par le logo de l'entreprise pour Android, iOS et le web.
-  - **Section d'Aide :** Ajout d'un guide d'utilisation accessible depuis le tableau de bord pour expliquer les fonctionnalités clés.
-- **Corrections de Bugs et Précisions**
-  - Correction de multiples erreurs "Bad state: No element" liées au chargement des catégories et à l'initialisation des formulaires.
-  - Amélioration de la robustesse des listes déroulantes pour gérer les cas où les données ne sont pas encore disponibles.
-  - **Clarification du rôle de "Destinataire Budget" et correction de l'export Excel :** Le champ "Destinataire Budget" est désormais utilisé uniquement pour le PDF. Les colonnes "Mise_AD_budget" et "Mode_Rglt" du rapport Excel sont désormais correctement dérivées du découpage du "Mode de paiement" (ex: "A/B" donne "A" et "B").
+  - **Écran d'Authentification :** L'écran d'authentification a été rendu "responsive" avec une mise en page améliorée pour les grands écrans.
+  - **Messages d'Erreur :** L'affichage des messages d'erreur sur les écrans de connexion et d'inscription a été amélioré pour une meilleure visibilité.
+  - **Correction de Text Overflow :** Des problèmes de débordement de texte sur le tableau de bord ont été corrigés.
+- **Correction de Bugs Majeurs**
+  - **Référence d'Achat (`Ref DA`) :** La logique de génération a été déplacée côté serveur pour garantir une unicité globale et éviter les doublons.
+  - **Réinitialisation de Mot de Passe :** Le flux de réinitialisation de mot de passe a été corrigé pour gérer correctement les redirections et éviter l'erreur `Code verifier not found`.
+  - **Correction des Erreurs de Compilation :** Multiples erreurs de compilation liées aux dépendances et à la syntaxe ont été résolues.
 
 ### Version 1.1.0 - 31/12/2025
 - **Implémentation des Spécifications du Cahier des Charges**
