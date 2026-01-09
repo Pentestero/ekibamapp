@@ -47,8 +47,28 @@ class DatabaseService {
 
   Future<Purchase> addPurchase(Purchase purchase, String userId) async {
     try {
+      // 1. Generate the new Ref DA with daily reset
+      final datePrefix = 'DA-${DateFormat('ddMMyyyy').format(purchase.date)}-';
+      final lastPurchaseTodayResponse = await _supabase
+          .from('purchases')
+          .select('ref_da')
+          .like('ref_da', '$datePrefix%')
+          .order('id', ascending: false) // Use a consistently increasing column
+          .limit(1)
+          .maybeSingle();
+
+      int newDailyId = 1;
+      if (lastPurchaseTodayResponse != null) {
+        final lastRefDA = lastPurchaseTodayResponse['ref_da'] as String;
+        final lastIdStr = lastRefDA.split('-').last;
+        final lastId = int.tryParse(lastIdStr) ?? 0;
+        newDailyId = lastId + 1;
+      }
+      final newRefDA = '$datePrefix$newDailyId';
+
+      // 2. Prepare the purchase object for insertion
       final purchaseToInsert = {
-        // 'ref_da' is initially null
+        'ref_da': newRefDA, // Set the generated Ref DA
         'date': purchase.date.toIso8601String(),
         'demander': purchase.demander,
         'project_type': purchase.projectType,
@@ -61,7 +81,7 @@ class DatabaseService {
         'user_id': userId,
       };
 
-      // 1. Insert purchase to get the unique ID
+      // 3. Insert the complete purchase record in one go
       final insertedPurchase = await _supabase
           .from('purchases')
           .insert(purchaseToInsert)
@@ -70,18 +90,6 @@ class DatabaseService {
 
       final newPurchaseId = insertedPurchase['id'];
 
-      // 2. Generate the new Ref DA
-      final dateFormatted = DateFormat('ddMMyyyy').format(purchase.date);
-      final newRefDA = 'DA-$dateFormatted-$newPurchaseId';
-
-      // 3. Update the purchase with the new Ref DA
-      final updatedPurchase = await _supabase
-          .from('purchases')
-          .update({'ref_da': newRefDA})
-          .eq('id', newPurchaseId)
-          .select()
-          .single();
-          
       // 4. Insert purchase items
       if (purchase.items.isNotEmpty) {
         final itemsToInsert = purchase.items.map((item) => {
@@ -100,7 +108,7 @@ class DatabaseService {
         await _supabase.from('purchase_items').insert(itemsToInsert);
       }
 
-      // 5. Return the full purchase object with the new Ref DA
+      // 5. Return the full purchase object
       return purchase.copyWith(id: newPurchaseId, refDA: newRefDA);
     } catch (e) {
       debugPrint("Erreur lors de l'ajout de l'achat: $e");

@@ -49,7 +49,7 @@ class PurchaseProvider with ChangeNotifier {
   String? get currentUserId => _user?.id;
 
   Map<String, int> get supplierTotals => _calculateAnalytics(
-      (item) => item.supplierName ?? 'N/A', (item) => item.total);
+      (item) => item.supplierName ?? 'Aucun', (item) => item.total);
   Map<String, int> get projectTypeTotals => _calculateAnalytics(
       (purchase) => purchase.projectType, (purchase) => purchase.grandTotal,
       isPurchaseLevel: true);
@@ -340,35 +340,37 @@ class PurchaseProvider with ChangeNotifier {
     if (index < 0 || index >= _itemsBuilder.length) return;
     final oldItem = _itemsBuilder[index];
 
-    // Determine the effective supplier ID for lookup
-    // If supplierId is provided, use it. Otherwise, use the old item's supplierId.
-    // Default to -1 (Aucun) if both are null/invalid to ensure a lookup always succeeds.
+    // --- Supplier Logic (preserved) ---
     final int effectiveSupplierId = supplierId ?? oldItem.supplierId ?? -1;
-
-    // Find the supplier. If not found, default to the "Aucun" supplier.
     final Supplier selectedSupplier = _suppliers.firstWhere(
       (s) => s.id == effectiveSupplierId,
-      orElse: () => _suppliers.firstWhere((s) => s.id == -1), // Should always exist
+      orElse: () => _suppliers.firstWhere((s) => s.id == -1),
     );
-
-    // Determine the supplierId and supplierName to save in PurchaseItem
-    // These should be null if "Aucun" is selected.
     final int? itemSupplierId = (selectedSupplier.id == -1) ? null : selectedSupplier.id;
     final String? itemSupplierName = (selectedSupplier.id == -1) ? null : selectedSupplier.name;
 
+    // --- New Category Logic ---
+    // This correctly handles updates. If a category or subcategory1 is changed,
+    // we take the new subCategory2 value as authoritative (even if it's null).
+    // Otherwise (e.g., updating quantity), we preserve the old subCategory2.
+    final bool isCategoryUpdate = category != null || subCategory1 != null;
+    final String? finalSubCategory2 = isCategoryUpdate
+        ? subCategory2
+        : (subCategory2 ?? oldItem.subCategory2);
+
     _itemsBuilder[index] = PurchaseItem(
-      id: oldItem.id, // Preserve existing ID
-      localId: oldItem.localId, // Preserve local ID
-      purchaseId: oldItem.purchaseId, // Preserve purchase ID
+      id: oldItem.id,
+      localId: oldItem.localId,
+      purchaseId: oldItem.purchaseId,
       category: category ?? oldItem.category,
       subCategory1: subCategory1 ?? oldItem.subCategory1,
-      subCategory2: subCategory2, // Directly assign, can be null
-      supplierId: itemSupplierId, // Explicitly set null for "Aucun"
+      subCategory2: finalSubCategory2, // Use the corrected value
+      supplierId: itemSupplierId,
       quantity: quantity ?? oldItem.quantity,
       unit: unit ?? oldItem.unit,
       unitPrice: unitPrice ?? oldItem.unitPrice,
       paymentFee: oldItem.paymentFee,
-      supplierName: itemSupplierName, // Explicitly set null for "Aucun"
+      supplierName: itemSupplierName,
       comment: oldItem.comment,
     );
     notifyListeners();

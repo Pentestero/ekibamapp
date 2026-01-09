@@ -168,111 +168,132 @@ class PurchaseCard extends StatelessWidget {
         ? 'Projet: ${purchase.projectType} (${purchase.clientName})'
         : 'Projet: ${purchase.projectType}';
 
+    final trailingActions = LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 600) { // For small screens
+          return PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'pdf') {
+                provider.exportInvoiceToPdf(purchase);
+              } else if (value == 'edit') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PurchaseFormScreen(purchase: purchase),
+                  ),
+                );
+              } else if (value == 'delete') {
+                _showDeleteDialog(context, provider, purchase);
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'pdf',
+                child: Row(children: [
+                  Icon(Icons.picture_as_pdf, color: Colors.red.shade700),
+                  const SizedBox(width: 8),
+                  const Text('Générer PDF'),
+                ]),
+              ),
+              PopupMenuItem(
+                value: 'edit',
+                child: Row(children: [
+                  Icon(Icons.edit, color: Colors.blue.shade700),
+                  const SizedBox(width: 8),
+                  const Text('Modifier'),
+                ]),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(children: [
+                  Icon(Icons.delete, color: Colors.grey.shade600),
+                  const SizedBox(width: 8),
+                  const Text('Supprimer'),
+                ]),
+              ),
+            ],
+          );
+        } else { // For large screens
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf),
+                color: Colors.red.shade700,
+                tooltip: 'Générer la facture PDF',
+                onPressed: () => provider.exportInvoiceToPdf(purchase),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit),
+                color: Colors.blue.shade700,
+                tooltip: 'Modifier',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PurchaseFormScreen(purchase: purchase),
+                    ),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete),
+                color: Colors.grey.shade600,
+                tooltip: 'Supprimer',
+                onPressed: () => _showDeleteDialog(context, provider, purchase),
+              ),
+            ],
+          );
+        }
+      },
+    );
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       elevation: 3,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Text(purchase.refDA ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Column(
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    purchase.refDA ?? 'N/A',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                trailingActions,
+              ],
+            ),
+            const Divider(),
             const SizedBox(height: 4),
             Text('Demandeur: ${purchase.demander}'),
-            Text(subtitleText),
             const SizedBox(height: 4),
-            Text(
-              '${NumberFormat('#,##0', 'fr_FR').format(purchase.grandTotal)} FCFA • $formattedDate',
-              style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
+            Text(subtitleText),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    '${NumberFormat('#,##0', 'fr_FR').format(purchase.grandTotal)} FCFA',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(formattedDate),
+              ],
             ),
           ],
         ),
-        trailing: LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth < 600) { // Pour les petits écrans
-              return PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'pdf') {
-                    provider.exportInvoiceToPdf(purchase);
-                  } else if (value == 'edit') {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PurchaseFormScreen(purchase: purchase),
-                      ),
-                    );
-                  } else if (value == 'delete') {
-                    _showDeleteDialog(context, provider, purchase);
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'pdf',
-                    child: Row(
-                      children: [
-                        Icon(Icons.picture_as_pdf, color: Colors.red.shade700),
-                        const SizedBox(width: 8),
-                        const Text('Générer PDF'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit, color: Colors.blue.shade700),
-                        const SizedBox(width: 8),
-                        const Text('Modifier'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, color: Colors.grey.shade600),
-                        const SizedBox(width: 8),
-                        const Text('Supprimer'),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            } else { // Pour les écrans larges
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.picture_as_pdf),
-                    color: Colors.red.shade700,
-                    tooltip: 'Générer la facture PDF',
-                    onPressed: () => provider.exportInvoiceToPdf(purchase),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.edit),
-                    color: Colors.blue.shade700,
-                    tooltip: 'Modifier',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PurchaseFormScreen(purchase: purchase),
-                        ),
-                      );
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete),
-                    color: Colors.grey.shade600,
-                    tooltip: 'Supprimer',
-                    onPressed: () => _showDeleteDialog(context, provider, purchase),
-                  ),
-                ],
-              );
-            }
-          },
-        ),
-        isThreeLine: true,
       ),
     );
   }

@@ -41,6 +41,7 @@ class AdminAnalyticsChart extends StatelessWidget {
                 child: SfCartesianChart(
                   primaryXAxis: const CategoryAxis(
                     majorGridLines: MajorGridLines(width: 0),
+                    labelIntersectAction: AxisLabelIntersectAction.wrap,
                   ),
                   primaryYAxis: NumericAxis(
                     numberFormat: currencyFormat,
@@ -50,7 +51,13 @@ class AdminAnalyticsChart extends StatelessWidget {
                   series: <CartesianSeries>[
                     BarSeries<MapEntry<String, int>, String>(
                       dataSource: top5Data,
-                      xValueMapper: (entry, _) => entry.key,
+                      xValueMapper: (entry, _) {
+                        const maxLength = 15;
+                        if (entry.key.length > maxLength) {
+                          return '${entry.key.substring(0, maxLength)}...';
+                        }
+                        return entry.key;
+                      },
                       yValueMapper: (entry, _) => entry.value,
                       dataLabelSettings: const DataLabelSettings(
                         isVisible: true,
