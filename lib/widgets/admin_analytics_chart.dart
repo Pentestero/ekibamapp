@@ -41,7 +41,8 @@ class AdminAnalyticsChart extends StatelessWidget {
                 child: SfCartesianChart(
                   primaryXAxis: const CategoryAxis(
                     majorGridLines: MajorGridLines(width: 0),
-                    labelIntersectAction: AxisLabelIntersectAction.wrap,
+                    labelIntersectAction: AxisLabelIntersectAction.rotate45,
+                    labelStyle: TextStyle(fontSize: 11),
                   ),
                   primaryYAxis: NumericAxis(
                     numberFormat: currencyFormat,

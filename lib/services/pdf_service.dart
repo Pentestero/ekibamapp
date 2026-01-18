@@ -217,7 +217,7 @@ class PdfService {
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)), // Smaller text
           pw.SizedBox(width: 10),
           pw.Text(
-              '${NumberFormat('#,##0', 'fr_FR').format(purchase.grandTotal)} FCFA',
+              '${NumberFormat('#,##0', 'fr_FR').format(purchase.grandTotal)} XAF',
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)), // Smaller text
         ],
       ),

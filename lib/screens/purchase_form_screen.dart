@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:provisions/models/purchase.dart';
-import 'package:provisions/models/supplier.dart';
 import 'package:provisions/providers/purchase_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:provisions/widgets/add_requester_dialog.dart'; // Import new dialog
+import 'package:provisions/widgets/add_payment_method_dialog.dart'; // Import new dialog
+import 'package:provisions/widgets/add_supplier_dialog.dart'; // Required for _PurchaseItemCard's dialog
+import 'package:provisions/widgets/add_category_dialog.dart'; // Required for _PurchaseItemCard's dialog
 
 String? _wordCountValidator(String? value) {
   if (value == null || value.isEmpty) {
@@ -37,9 +40,12 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       final provider = context.read<PurchaseProvider>();
       if (widget.purchase != null) {
         provider.loadPurchaseForEditing(widget.purchase!);
+        _commentsController.text = widget.purchase!.comments;
         _clientNameController.text = widget.purchase!.clientName ?? '';
       } else {
         provider.clearForm();
+        _commentsController.clear();
+        _clientNameController.clear();
       }
     });
   }
@@ -57,7 +63,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       builder: (_) {
         return ChangeNotifierProvider.value(
           value: context.read<PurchaseProvider>(),
-          child: _AddRequesterDialog(),
+          child: AddRequesterDialog(), // Use new public dialog
         );
       },
     );
@@ -69,13 +75,11 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       builder: (_) {
         return ChangeNotifierProvider.value(
           value: context.read<PurchaseProvider>(),
-          child: _AddPaymentMethodDialog(),
+          child: AddPaymentMethodDialog(), // Use new public dialog
         );
       },
     );
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -100,17 +104,16 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       ),
       body: Consumer<PurchaseProvider>(
         builder: (context, provider, child) {
+          // Update controllers if provider's builder state changes
           if (_commentsController.text != provider.purchaseBuilder.comments) {
             _commentsController.text = provider.purchaseBuilder.comments;
           }
-          if (_clientNameController.text !=
-              (provider.purchaseBuilder.clientName ?? '')) {
-            _clientNameController.text =
-                provider.purchaseBuilder.clientName ?? '';
+          if (_clientNameController.text != (provider.purchaseBuilder.clientName ?? '')) {
+            _clientNameController.text = provider.purchaseBuilder.clientName ?? '';
           }
 
-          if (provider.isLoading && provider.requesters.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+          if (provider.isLoading && provider.requesters.isEmpty && !provider.isEditing) {
+            return const Center(child: CircularProgressIndicator()); // Keep default loading for now
           }
 
           return SingleChildScrollView(
@@ -157,8 +160,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             ListTile(
               leading: Icon(Icons.calendar_today,
                   color: Theme.of(context).colorScheme.primary),
-              title: const Text('Date de l\'achat'),
-              subtitle: Text(
+              title: Text(
                   DateFormat('dd/MM/yyyy').format(provider.purchaseBuilder.date)),
               trailing: Icon(Icons.arrow_drop_down,
                   color: Theme.of(context).colorScheme.primary),
@@ -172,9 +174,10 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             const SizedBox(height: 16),
             TextFormField(
               initialValue: provider.purchaseBuilder.demander,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Demandeur',
-                prefixIcon: Icon(Icons.person),
+                prefixIcon: const Icon(Icons.person),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
               enabled: false, // Make it read-only
             ),
@@ -185,9 +188,10 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: provider.purchaseBuilder.miseADBudget,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                         labelText: 'Destinataire Budget (si different)',
-                        prefixIcon: Icon(Icons.account_balance_wallet)),
+                        prefixIcon: const Icon(Icons.account_balance_wallet),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                     items: [
                       const DropdownMenuItem<String>(
                         value: null,
@@ -214,8 +218,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: provider.purchaseBuilder.projectType,
-              decoration: const InputDecoration(
-                  labelText: 'Type de Projet', prefixIcon: Icon(Icons.work)),
+              decoration: InputDecoration(
+                  labelText: 'Type de Projet', prefixIcon: const Icon(Icons.work), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
               items: provider.projectTypes
                   .map((p) => DropdownMenuItem(value: p, child: Text(p)))
                   .toList(),
@@ -232,9 +236,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _clientNameController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                     labelText: 'Nom du Client ou projet client',
-                    prefixIcon: Icon(Icons.person_pin)),
+                    prefixIcon: const Icon(Icons.person_pin), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                 onChanged: (value) =>
                     provider.updatePurchaseHeader(clientName: value),
                 validator: (value) {
@@ -257,9 +261,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                             .contains(provider.purchaseBuilder.paymentMethod)
                         ? provider.purchaseBuilder.paymentMethod
                         : null,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                         labelText: 'Mode de paiement',
-                        prefixIcon: Icon(Icons.payment)),
+                        prefixIcon: const Icon(Icons.payment), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                     items: provider.paymentMethods
                         .map((p) => DropdownMenuItem(value: p, child: Text(p)))
                         .toList(),
@@ -281,9 +285,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _commentsController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                   labelText: 'Commentaire Général',
-                  prefixIcon: Icon(Icons.comment)),
+                  prefixIcon: const Icon(Icons.comment), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
               onChanged: (value) =>
                   provider.updatePurchaseHeader(comments: value),
               validator: _wordCountValidator, // Apply the word count validator
@@ -296,55 +300,65 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   }
 
   Widget _buildItemsSection(BuildContext context, PurchaseProvider provider) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Articles',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                )),
-        const SizedBox(height: 16),
-        if (provider.itemsBuilder.isEmpty)
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 32.0),
-              child: Text(
-                'Appuyez sur "Ajouter un article" pour commencer.',
-                style: Theme.of(context).textTheme.bodyLarge,
-                textAlign: TextAlign.center,
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Articles',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    )),
+            const SizedBox(height: 16),
+            if (provider.itemsBuilder.isEmpty)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 32.0),
+                  child: Text(
+                    'Appuyez sur "Ajouter un article" pour commencer.',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: provider.itemsBuilder.length,
+              itemBuilder: (context, index) {
+                // Use the item itself as the ValueKey, relies on PurchaseItem's operator== and hashCode
+                return _PurchaseItemCard(key: ValueKey(provider.itemsBuilder[index]), index: index);
+              },
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  final error = provider.addNewItem();
+                  if (error != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(error), backgroundColor: Colors.orange),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Ajouter un article'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.secondary,
+                  foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
               ),
             ),
-          ),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: provider.itemsBuilder.length,
-          itemBuilder: (context, index) {
-            // Use the item itself as the ValueKey, relies on PurchaseItem's operator== and hashCode
-            return _PurchaseItemCard(key: ValueKey(provider.itemsBuilder[index]), index: index);
-          },
+          ],
         ),
-        const SizedBox(height: 16),
-        Center(
-          child: ElevatedButton.icon(
-            onPressed: () {
-              final error = provider.addNewItem();
-              if (error != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(error), backgroundColor: Colors.orange),
-                );
-              }
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Ajouter un article'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.secondary,
-              foregroundColor: Theme.of(context).colorScheme.onSecondary,
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -367,7 +381,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                     )),
             Expanded( // Wrap in Expanded
               child: Text(
-                '${NumberFormat('#,##0', 'fr_FR').format(provider.grandTotalBuilder)} FCFA',
+                '${NumberFormat('#,##0', 'fr_FR').format(provider.grandTotalBuilder)} XAF',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -390,6 +404,12 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       child: ElevatedButton.icon(
         onPressed:
             provider.isLoading ? null : () => _submitForm(context, provider),
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         icon: provider.isLoading
             ? const SizedBox(
                 width: 20,
@@ -535,12 +555,12 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
       builder: (_) {
         return ChangeNotifierProvider.value(
           value: context.read<PurchaseProvider>(),
-          child: _AddSupplierDialog(),
+          child: AddSupplierDialog(), // Use new public dialog
         );
       },
     ).then((newSupplier) {
       if (!mounted) return;
-      if (newSupplier != null && newSupplier is Supplier) {
+      if (newSupplier != null) { // Supplier is already typed as Supplier from dialog, no need to check is Supplier
         context
             .read<PurchaseProvider>()
             .updateItem(widget.index, supplierId: newSupplier.id);
@@ -554,7 +574,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
       builder: (_) {
         return ChangeNotifierProvider.value(
           value: context.read<PurchaseProvider>(),
-          child: _AddCategoryDialog(),
+          child: AddCategoryDialog(), // Use new public dialog
         );
       },
     ).then((_) {
@@ -609,7 +629,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: item.category,
-                    decoration: const InputDecoration(labelText: 'Catégorie'),
+                    decoration: InputDecoration(labelText: 'Catégorie', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                     items: categories
                         .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                         .toList(),
@@ -652,7 +672,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                   : (subCategories1.contains(item.subCategory1)
                       ? item.subCategory1
                       : subCategories1.first),
-              decoration: const InputDecoration(labelText: 'Sous-catégorie 1'),
+              decoration: InputDecoration(labelText: 'Sous-catégorie 1', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
               items: subCategories1
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                   .toList(),
@@ -678,8 +698,8 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                     : (subCategories2.contains(item.subCategory2)
                         ? item.subCategory2
                         : subCategories2.first),
-                decoration: const InputDecoration(
-                    labelText: 'Sous-catégorie 2 / Article'),
+                decoration: InputDecoration(
+                    labelText: 'Sous-catégorie 2 / Article', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                 items: subCategories2
                     .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                     .toList(),
@@ -699,7 +719,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     value: item.supplierId ?? -1, // Use -1 for Aucun if supplierId is null
-                    decoration: const InputDecoration(labelText: 'Fournisseur'),
+                    decoration: InputDecoration(labelText: 'Fournisseur', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                     items: provider.suppliers
                         .map((s) =>
                             DropdownMenuItem(value: s.id, child: Text(s.name)))
@@ -729,7 +749,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                     children: [
                       TextFormField(
                         controller: _quantityController,
-                        decoration: const InputDecoration(labelText: 'Quantité'),
+                        decoration: InputDecoration(labelText: 'Quantité', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                         keyboardType:
                             const TextInputType.numberWithOptions(decimal: true),
                         inputFormatters: [
@@ -744,7 +764,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _unitController,
-                        decoration: const InputDecoration(labelText: 'Unité'),
+                        decoration: InputDecoration(labelText: 'Unité', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                         onChanged: (value) {
                           context.read<PurchaseProvider>().updateItem(widget.index, unit: value);
                         },
@@ -752,8 +772,8 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _priceController,
-                        decoration: const InputDecoration(
-                            labelText: 'Prix Unitaire', suffixText: 'FCFA'),
+                        decoration: InputDecoration(
+                            labelText: 'Prix Unitaire', suffixText: 'XAF', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly
@@ -773,7 +793,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                         flex: 2,
                         child: TextFormField(
                           controller: _quantityController,
-                          decoration: const InputDecoration(labelText: 'Quantité'),
+                          decoration: InputDecoration(labelText: 'Quantité', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                           keyboardType:
                               const TextInputType.numberWithOptions(decimal: true),
                           inputFormatters: [
@@ -791,7 +811,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                         flex: 1,
                         child: TextFormField(
                           controller: _unitController,
-                          decoration: const InputDecoration(labelText: 'Unité'),
+                          decoration: InputDecoration(labelText: 'Unité', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                           onChanged: (value) {
                             context.read<PurchaseProvider>().updateItem(widget.index, unit: value);
                           },
@@ -802,8 +822,8 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                         flex: 3,
                         child: TextFormField(
                           controller: _priceController,
-                          decoration: const InputDecoration(
-                              labelText: 'Prix Unitaire', suffixText: 'FCFA'),
+                          decoration: InputDecoration(
+                              labelText: 'Prix Unitaire', suffixText: 'XAF', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly
@@ -822,9 +842,9 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _commentController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                   labelText: 'Commentaire (par article)',
-                  prefixIcon: Icon(Icons.comment)),
+                  prefixIcon: const Icon(Icons.comment), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
               onChanged: (value) { // Reverted to onChanged
                 context.read<PurchaseProvider>().updateItemComment(widget.index, value);
               },
@@ -847,7 +867,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   Expanded( // Wrap in Expanded
                     child: Text(
-                      '${NumberFormat('#,##0', 'fr_FR').format(item.total)} FCFA',
+                      '${NumberFormat('#,##0', 'fr_FR').format(item.total)} XAF',
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.bold),
                       textAlign: TextAlign.end, // Align to end
@@ -861,216 +881,6 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
           ],
         ),
       ),
-    );
-  }
-}
-
-// Dialog for adding a new requester
-class _AddRequesterDialog extends StatefulWidget {
-  @override
-  __AddRequesterDialogState createState() => __AddRequesterDialogState();
-}
-
-class __AddRequesterDialogState extends State<_AddRequesterDialog> {
-  final _formKey = GlobalKey<FormState>();
-  String _name = '';
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Créer un nouveau demandeur'),
-      content: Form(
-        key: _formKey,
-        child: TextFormField(
-          decoration: const InputDecoration(labelText: 'Nom du demandeur'),
-          onSaved: (value) => _name = value ?? '',
-          validator: (value) =>
-              (value == null || value.isEmpty) ? 'Champ requis' : null,
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            if (_formKey.currentState!.validate()) {
-              _formKey.currentState!.save();
-              await context.read<PurchaseProvider>().addNewRequester(name: _name);
-              if (!context.mounted) return;
-              Navigator.of(context).pop();
-            }
-          },
-          child: const Text('Enregistrer'),
-        ),
-      ],
-    );
-  }
-}
-
-// Dialog for adding a new supplier
-class _AddSupplierDialog extends StatefulWidget {
-  @override
-  __AddSupplierDialogState createState() => __AddSupplierDialogState();
-}
-
-class __AddSupplierDialogState extends State<_AddSupplierDialog> {
-  final _formKey = GlobalKey<FormState>();
-  String _name = '';
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = context.read<PurchaseProvider>();
-
-    return AlertDialog(
-      title: const Text('Créer un nouveau fournisseur'),
-      content: Form(
-        key: _formKey,
-        child: TextFormField(
-          decoration: const InputDecoration(labelText: 'Nom du fournisseur'),
-          onSaved: (value) => _name = value ?? '',
-          validator: (value) =>
-              (value == null || value.isEmpty) ? 'Champ requis' : null,
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            if (_formKey.currentState!.validate()) {
-              _formKey.currentState!.save();
-              final newSupplier = await provider.addNewSupplier(name: _name);
-              if (!context.mounted) return;
-              Navigator.of(context).pop(newSupplier);
-            }
-          },
-          child: const Text('Enregistrer'),
-        ),
-      ],
-    );
-  }
-}
-
-// Dialog for adding a new Payment Method
-class _AddPaymentMethodDialog extends StatefulWidget {
-  @override
-  __AddPaymentMethodDialogState createState() => __AddPaymentMethodDialogState();
-}
-
-class __AddPaymentMethodDialogState extends State<_AddPaymentMethodDialog> {
-  final _formKey = GlobalKey<FormState>();
-  String _name = '';
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Créer un nouveau mode de paiement'),
-      content: Form(
-        key: _formKey,
-        child: TextFormField(
-          decoration: const InputDecoration(labelText: 'Nom du mode de paiement'),
-          onSaved: (value) => _name = value ?? '',
-          validator: (value) => (value == null || value.isEmpty) ? 'Champ requis' : null,
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            if (_formKey.currentState!.validate()) {
-              _formKey.currentState!.save();
-              await context.read<PurchaseProvider>().addNewPaymentMethod(name: _name);
-              if (!context.mounted) return;
-              Navigator.of(context).pop();
-            }
-          },
-          child: const Text('Enregistrer'),
-        ),
-      ],
-    );
-  }
-}
-
-// Dialog for adding a new Category
-class _AddCategoryDialog extends StatefulWidget {
-  @override
-  __AddCategoryDialogState createState() => __AddCategoryDialogState();
-}
-
-class __AddCategoryDialogState extends State<_AddCategoryDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _categoryController = TextEditingController();
-  final TextEditingController _subCategory1Controller = TextEditingController();
-  final TextEditingController _subCategory2Controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _categoryController.dispose();
-    _subCategory1Controller.dispose();
-    _subCategory2Controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Créer une nouvelle catégorie'),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _categoryController,
-                decoration: const InputDecoration(labelText: 'Catégorie'),
-                validator: (value) => (value == null || value.isEmpty) ? 'Champ requis' : null,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _subCategory1Controller,
-                decoration: const InputDecoration(labelText: 'Sous-catégorie 1'),
-                validator: (value) => (value == null || value.isEmpty) ? 'Champ requis' : null,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _subCategory2Controller,
-                decoration: const InputDecoration(labelText: 'Sous-catégorie 2 / Article (optionnel)'),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            if (_formKey.currentState!.validate()) {
-              _formKey.currentState!.save();
-              await context.read<PurchaseProvider>().addNewCategory(
-                    category: _categoryController.text,
-                    subCategory1: _subCategory1Controller.text,
-                    subCategory2: _subCategory2Controller.text.isNotEmpty
-                        ? _subCategory2Controller.text
-                        : null,
-                  );
-              if (!context.mounted) return;
-              Navigator.of(context).pop();
-            }
-          },
-          child: const Text('Enregistrer'),
-        ),
-      ],
     );
   }
 }

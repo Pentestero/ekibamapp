@@ -39,7 +39,7 @@ class PurchaseDetailScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             _buildSectionTitle(context, 'Totaux'),
-            _buildDetailRow(context, 'Montant Total', '${currencyFormat.format(purchase.grandTotal)} FCFA', isTotal: true),
+            _buildDetailRow(context, 'Montant Total', '${currencyFormat.format(purchase.grandTotal)} XAF', isTotal: true),
           ],
         ),
       ),
@@ -93,28 +93,82 @@ class PurchaseDetailScreen extends StatelessWidget {
       return const Text('Aucun article pour cet achat.');
     }
 
-    return DataTable(
-      columns: const [
-        DataColumn(label: Text('Catégorie')),
-        DataColumn(label: Text('Produit')),
-        DataColumn(label: Text('Qté')),
-        DataColumn(label: Text('PU (FCFA)')),
-        DataColumn(label: Text('Total (FCFA)')),
-        DataColumn(label: Text('Com.')),
-      ],
-      rows: items.map((item) {
-        final productName = item.subCategory2 ?? item.subCategory1; // More specific product name
-        return DataRow(
-          cells: [
-            DataCell(Text(item.category)),
-            DataCell(Text(productName)),
-            DataCell(Text(item.quantity.toStringAsFixed(1))),
-            DataCell(Text(currencyFormat.format(item.unitPrice))),
-            DataCell(Text(currencyFormat.format(item.total))),
-            DataCell(Text(item.comment ?? '')),
-          ],
-        );
-      }).toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 600) { // Mobile view: ListView of Cards
+          return ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              final productName = item.subCategory2 ?? item.subCategory1;
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Catégorie: ${item.category}', style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 4),
+                      Text('Produit: $productName'),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Qté: ${item.quantity.toStringAsFixed(1)}'),
+                          Text('PU: ${currencyFormat.format(item.unitPrice)} XAF'),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Align(
+                        alignment: Alignment.bottomRight,
+                        child: Text(
+                          'Total: ${currencyFormat.format(item.total)} XAF',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+                        ),
+                      ),
+                      if (item.comment != null && item.comment!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text('Commentaire: ${item.comment}', style: Theme.of(context).textTheme.bodySmall),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        } else { // Desktop view: DataTable
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: const [
+                DataColumn(label: Text('Catégorie')),
+                DataColumn(label: Text('Produit')),
+                DataColumn(label: Text('Qté')),
+                DataColumn(label: Text('PU (XAF)')),
+                DataColumn(label: Text('Total (XAF)')),
+                DataColumn(label: Text('Com.')),
+              ],
+              rows: items.map((item) {
+                final productName = item.subCategory2 ?? item.subCategory1; // More specific product name
+                return DataRow(
+                  cells: [
+                    DataCell(Text(item.category)),
+                    DataCell(Text(productName)),
+                    DataCell(Text(item.quantity.toStringAsFixed(1))),
+                    DataCell(Text(currencyFormat.format(item.unitPrice))),
+                    DataCell(Text(currencyFormat.format(item.total))),
+                    DataCell(Text(item.comment ?? '')),
+                  ],
+                );
+              }).toList(),
+            ),
+          );
+        }
+      },
     );
   }
 }

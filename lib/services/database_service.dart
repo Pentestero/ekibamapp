@@ -47,53 +47,18 @@ class DatabaseService {
 
   Future<Purchase> addPurchase(Purchase purchase, String userId) async {
     try {
-      // 1. Generate the new Ref DA with daily reset
-      final datePrefix = 'DA-${DateFormat('ddMMyyyy').format(purchase.date)}-';
-      final lastPurchaseTodayResponse = await _supabase
-          .from('purchases')
-          .select('ref_da')
-          .like('ref_da', '$datePrefix%')
-          .order('id', ascending: false) // Use a consistently increasing column
-          .limit(1)
-          .maybeSingle();
-
-      int newDailyId = 1;
-      if (lastPurchaseTodayResponse != null) {
-        final lastRefDA = lastPurchaseTodayResponse['ref_da'] as String;
-        final lastIdStr = lastRefDA.split('-').last;
-        final lastId = int.tryParse(lastIdStr) ?? 0;
-        newDailyId = lastId + 1;
-      }
-      final newRefDA = '$datePrefix$newDailyId';
-
-      // 2. Prepare the purchase object for insertion
-      final purchaseToInsert = {
-        'ref_da': newRefDA, // Set the generated Ref DA
-        'date': purchase.date.toIso8601String(),
-        'demander': purchase.demander,
-        'project_type': purchase.projectType,
-        'client_name': purchase.clientName,
-        'payment_method': purchase.paymentMethod,
-        'mise_ad_budget': purchase.miseADBudget,
-        'mode_rglt': purchase.modeRglt,
-        'comments': purchase.comments,
-        'created_at': purchase.createdAt.toIso8601String(),
-        'user_id': userId,
-      };
-
-      // 3. Insert the complete purchase record in one go
-      final insertedPurchase = await _supabase
-          .from('purchases')
-          .insert(purchaseToInsert)
-          .select()
-          .single();
-
-      final newPurchaseId = insertedPurchase['id'];
-
-      // 4. Insert purchase items
-      if (purchase.items.isNotEmpty) {
-        final itemsToInsert = purchase.items.map((item) => {
-          'purchase_id': newPurchaseId,
+      // Prepare the parameters for the RPC call
+      final params = {
+        'purchase_date': purchase.date.toIso8601String(),
+        'demander_name': purchase.demander,
+        'project_type_name': purchase.projectType,
+        'client_name_text': purchase.clientName,
+        'payment_method_name': purchase.paymentMethod,
+        'mise_ad_budget_text': purchase.miseADBudget,
+        'mode_rglt_text': purchase.modeRglt,
+        'comments_text': purchase.comments,
+        'creator_user_id': userId,
+        'purchase_items': purchase.items.map((item) => {
           'category': item.category,
           'sub_category_1': item.subCategory1,
           'sub_category_2': item.subCategory2,
@@ -103,15 +68,21 @@ class DatabaseService {
           'unit_price': item.unitPrice,
           'payment_fee': item.paymentFee,
           'comment': item.comment,
-        }).toList();
+        }).toList(),
+      };
 
-        await _supabase.from('purchase_items').insert(itemsToInsert);
-      }
+      // Call the database function
+      final data = await _supabase.rpc(
+        'create_purchase_with_ref_da',
+        params: params,
+      );
 
-      // 5. Return the full purchase object
-      return purchase.copyWith(id: newPurchaseId, refDA: newRefDA);
+      // The function returns the complete new purchase as JSON.
+      // We just need to parse it back into our Dart model.
+      return Purchase.fromMap(data);
+
     } catch (e) {
-      debugPrint("Erreur lors de l'ajout de l'achat: $e");
+      debugPrint("Erreur lors de l'appel RPC pour ajouter l'achat: $e");
       rethrow;
     }
   }

@@ -39,8 +39,8 @@ class HelpScreen extends StatelessWidget {
             ),
              _buildHelpItem(
               context,
-              'Montants en FCFA',
-              'Tous les montants monétaires (Prix Unitaire, Total, etc.) sont gérés en tant qu\'entiers pour représenter les FCFA. Les champs de saisie n\'acceptent que des chiffres.',
+              'Montants en XAF',
+              'Tous les montants monétaires (Prix Unitaire, Total, etc.) sont gérés en tant qu\'entiers pour représenter les XAF. Les champs de saisie n\'acceptent que des chiffres.',
             ),
           ],
         ),

@@ -147,6 +147,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             bottomNavigationBar: NavigationBar(
+              labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
               selectedIndex: _currentIndex,
               onDestinationSelected: (index) {
                 setState(() {

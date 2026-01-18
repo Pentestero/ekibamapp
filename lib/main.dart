@@ -40,33 +40,7 @@ class MyApp extends StatelessWidget {
         theme: theme.lightTheme,
         darkTheme: theme.darkTheme,
         themeMode: theme.mode,
-        home: StreamBuilder<AuthState>(
-          stream: AuthService.instance.authStateChanges,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const SplashScreen();
-            }
-
-            // Check for password recovery link in URL fragment for implicit flow
-            final uri = Uri.parse(Uri.base.toString());
-            final fragment = uri.fragment; 
-            final fragmentParams = Uri.splitQueryString(fragment);
-
-            if (fragmentParams['type'] == 'recovery' && fragmentParams.containsKey('access_token')) {
-              // Supabase SDK automatically handles session when access_token is present in URL
-              return const ResetPasswordScreen();
-            }
-
-            final session = snapshot.data?.session;
-            if (session != null) {
-              // If we have a session, pass the user object to the HomePage
-              return HomePage(user: session.user);
-            } 
-
-            // Otherwise, show the auth screen
-            return const AuthScreen();
-          },
-        ),
+        home: const SplashScreen(),
           );
         },
       ),

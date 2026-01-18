@@ -41,7 +41,7 @@ class SupplierChart extends StatelessWidget {
               xValueMapper: (ChartData data, _) => data.label,
               yValueMapper: (ChartData data, _) => data.value,
               dataLabelMapper: (ChartData data, _) =>
-                  '${data.label}\n${NumberFormat('#,##0', 'fr_FR').format(data.value)} FCFA',
+                  '${data.label}\n${NumberFormat('#,##0', 'fr_FR').format(data.value)} XAF',
               dataLabelSettings: const DataLabelSettings(
                 isVisible: true,
                 labelPosition: ChartDataLabelPosition.outside,
@@ -54,7 +54,7 @@ class SupplierChart extends StatelessWidget {
           ],
           tooltipBehavior: TooltipBehavior(
             enable: true,
-            format: 'point.x: point.y FCFA',
+            format: 'point.x: point.y XAF',
           ),
         ),
       ),

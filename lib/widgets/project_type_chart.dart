@@ -56,7 +56,7 @@ class ProjectTypeChart extends StatelessWidget {
           ],
           tooltipBehavior: TooltipBehavior(
             enable: true,
-            format: 'point.x: point.y FCFA',
+            format: 'point.x: point.y XAF',
           ),
         ),
       ),

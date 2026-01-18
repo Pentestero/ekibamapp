@@ -1,156 +1,179 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provisions/services/auth_service.dart';
-import 'package:provisions/screens/home_page.dart'; // Assuming HomePage is the main logged-in screen
-import 'package:provisions/screens/auth_screen.dart'; // Import the AuthScreen
+import 'package:provisions/widgets/app_brand.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  final String? accessToken;
-  const ResetPasswordScreen({super.key, this.accessToken});
+  const ResetPasswordScreen({super.key});
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+class _ResetPasswordScreenState extends State<ResetPasswordScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _newPasswordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final _emailController = TextEditingController();
   bool _isLoading = false;
-  bool _isNewPasswordVisible = false;
-  bool _isConfirmPasswordVisible = false;
-  String? _errorMessage;
+  String? _message;
+  bool _isSuccess = false;
+
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 700),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.2),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _controller.forward();
+  }
 
   @override
   void dispose() {
-    _newPasswordController.dispose();
-    _confirmPasswordController.dispose();
+    _emailController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
-  String? _validatePassword(String? value) {
-    if (value == null || value.length < 6) {
-      return 'Le mot de passe doit contenir au moins 6 caractères';
-    }
-    return null;
-  }
-
-  String? _validateConfirmPassword(String? value) {
-    if (value != _newPasswordController.text) {
-      return 'Les mots de passe ne correspondent pas';
-    }
-    return null;
-  }
-
-  Future<void> _resetPassword() async {
+  Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
+      _message = null;
+      _isSuccess = false;
     });
 
     try {
-      // Supabase's updateUser automatically uses the session from the access_token
-      // if it's set in the URL (which main.dart will handle before navigating here).
-      // So we don't need to pass the accessToken directly to updateUser.
-      await AuthService.instance.updateUserPassword(
-        _newPasswordController.text,
-      );
-
-      if (mounted) {
-        // After successful password reset, redirect to home or login
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Votre mot de passe a été réinitialisé avec succès !'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        // After password reset, user is automatically logged in with the new password
-        // The StreamBuilder in main.dart should catch this and redirect to HomePage.
-        // For safety, we can navigate to AuthScreen and let StreamBuilder handle it.
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => AuthScreen()), // Navigate to AuthScreen
-          (route) => false,
-        );
-      }
+      await AuthService.instance.sendPasswordResetEmail(_emailController.text.trim());
+      setState(() {
+        _message = 'Un lien de réinitialisation a été envoyé à votre email.';
+        _isSuccess = true;
+      });
     } on AuthException catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.message;
-        });
-      }
+      setState(() {
+        _message = e.message;
+        _isSuccess = false;
+      });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Une erreur inattendue est survenue.';
-        });
-      }
+      setState(() {
+        _message = 'Une erreur inattendue est survenue.';
+        _isSuccess = false;
+      });
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Réinitialiser le mot de passe'),
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextFormField(
-                  controller: _newPasswordController,
-                  obscureText: !_isNewPasswordVisible,
-                  decoration: InputDecoration(
-                    labelText: 'Nouveau mot de passe',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(_isNewPasswordVisible ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _isNewPasswordVisible = !_isNewPasswordVisible),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: Card(
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const AppBrand(height: 50, showText: true),
+                          const SizedBox(height: 32),
+                          Text(
+                            'Réinitialiser le mot de passe',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Entrez votre email pour recevoir un lien de réinitialisation.',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 32),
+                          TextFormField(
+                            controller: _emailController,
+                            decoration: InputDecoration(
+                              labelText: 'Email',
+                              hintText: 'exemple@domaine.com',
+                              prefixIcon: const Icon(Icons.email),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Veuillez entrer votre email';
+                              }
+                              if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                                return 'Email invalide';
+                              }
+                              return null;
+                            },
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          const SizedBox(height: 16),
+                          if (_message != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16.0),
+                              child: Text(
+                                _message!,
+                                style: TextStyle(
+                                  color: _isSuccess ? Colors.green : Theme.of(context).colorScheme.error,
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _submit,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: _isLoading
+                                ? const CircularProgressIndicator(color: Colors.white)
+                                : const Text('Envoyer le lien'),
+                          ),
+                          const SizedBox(height: 16),
+                          OutlinedButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Theme.of(context).colorScheme.primary,
+                              side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              textStyle: const TextStyle(fontSize: 18),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('Annuler'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  validator: _validatePassword,
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _confirmPasswordController,
-                  obscureText: !_isConfirmPasswordVisible,
-                  decoration: InputDecoration(
-                    labelText: 'Confirmer le nouveau mot de passe',
-                    prefixIcon: const Icon(Icons.lock),
-                    suffixIcon: IconButton(
-                      icon: Icon(_isConfirmPasswordVisible ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
-                    ),
-                  ),
-                  validator: _validateConfirmPassword,
-                ),
-                const SizedBox(height: 24),
-                if (_errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: Text(
-                      _errorMessage!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 16),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _resetPassword,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('Réinitialiser'),
-                ),
-              ],
+              ),
             ),
           ),
         ),

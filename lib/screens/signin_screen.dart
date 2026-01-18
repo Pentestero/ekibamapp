@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provisions/services/auth_service.dart';
 import 'package:provisions/screens/home_page.dart';
+import 'package:provisions/screens/reset_password_screen.dart'; // Import the new reset password screen
+import 'package:provisions/widgets/app_brand.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -10,13 +12,44 @@ class SignInScreen extends StatefulWidget {
   State<SignInScreen> createState() => _SignInScreenState();
 }
 
-class _SignInScreenState extends State<SignInScreen> {
+class _SignInScreenState extends State<SignInScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   String? _errorMessage;
+
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 700),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.2),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _controller.forward();
+
+    _emailController.addListener(() => setState(() {}));
+    _passwordController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -33,7 +66,9 @@ class _SignInScreenState extends State<SignInScreen> {
       );
 
       if (mounted && response.user != null) {
-        Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => HomePage(user: response.user!)), (route) => false);
+        Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => HomePage(user: response.user!)),
+            (route) => false);
       }
     } on AuthException catch (e) {
       if (mounted) {
@@ -57,172 +92,134 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Se connecter')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'exemple@domaine.com',
-                  prefixIcon: Icon(Icons.email),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer un email';
-                  }
-                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                    return 'Email invalide';
-                  }
-                  return null;
-                },
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: !_isPasswordVisible,
-                decoration: InputDecoration(
-                  labelText: 'Mot de passe',
-                  hintText: '6+ caractères',
-                  prefixIcon: const Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(_isPasswordVisible ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: Card(
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const AppBrand(height: 50, showText: true),
+                          const SizedBox(height: 32),
+                          Text(
+                            'Bienvenue ! Connectez-vous à votre compte.',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 32),
+                          TextFormField(
+                            controller: _emailController,
+                            decoration: InputDecoration(
+                              labelText: 'Email',
+                              hintText: 'exemple@domaine.com',
+                              prefixIcon: const Icon(Icons.email),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Veuillez entrer un email';
+                              }
+                              if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                                return 'Email invalide';
+                              }
+                              return null;
+                            },
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: !_isPasswordVisible,
+                            decoration: InputDecoration(
+                              labelText: 'Mot de passe',
+                              hintText: '6+ caractères',
+                              prefixIcon: const Icon(Icons.lock),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              suffixIcon: IconButton(
+                                icon: Icon(_isPasswordVisible ? Icons.visibility_off : Icons.visibility),
+                                onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.length < 6) {
+                                return 'Le mot de passe doit contenir au moins 6 caractères';
+                              }
+                              return null;
+                            },
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () {
+                                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ResetPasswordScreen()));
+                              },
+                              child: const Text('Mot de passe oublié ?'),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (_errorMessage != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16.0),
+                              child: Text(
+                                _errorMessage!,
+                                style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 16),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _submit,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: _isLoading
+                                ? const CircularProgressIndicator(color: Colors.white)
+                                : const Text('Se connecter'),
+                          ),
+                          const SizedBox(height: 16),
+                          // Link to sign up - consistent with AuthScreen's structure
+                          OutlinedButton(
+                            onPressed: () {
+                              Navigator.of(context).pop(); // Go back to AuthScreen or directly to SignUp
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Theme.of(context).colorScheme.primary,
+                              side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              textStyle: const TextStyle(fontSize: 18),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('Créer un compte'),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                validator: (value) {
-                  if (value == null || value.length < 6) {
-                    return 'Le mot de passe doit contenir au moins 6 caractères';
-                  }
-                  return null;
-                },
               ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _showForgotPasswordDialog,
-                  child: const Text('Mot de passe oublié ?'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Text(
-                    _errorMessage!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 16),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ElevatedButton(onPressed: _isLoading ? null : _submit, child: _isLoading ? const CircularProgressIndicator() : const Text('Se connecter')),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
+  // Renamed and simplified the showForgotPasswordDialog as we now navigate to a dedicated screen
   void _showForgotPasswordDialog() {
-    final TextEditingController emailResetController = TextEditingController();
-    final _formKeyDialog = GlobalKey<FormState>();
-    bool dialogLoading = false;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Réinitialiser le mot de passe'),
-              content: Form(
-                key: _formKeyDialog,
-                child: TextFormField(
-                  controller: emailResetController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer votre email';
-                    }
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                      return 'Email invalide';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Annuler'),
-                ),
-                ElevatedButton(
-                  onPressed: dialogLoading
-                      ? null
-                      : () async {
-                          if (_formKeyDialog.currentState!.validate()) {
-                            setDialogState(() {
-                              dialogLoading = true;
-                            });
-                            try {
-                              await AuthService.instance.sendPasswordResetEmail(emailResetController.text.trim());
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Un lien de réinitialisation a été envoyé à votre email.'),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                                Navigator.of(context).pop();
-                              }
-                            } on AuthException catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Erreur: ${e.message}'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Une erreur inattendue est survenue.'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            } finally {
-                              setDialogState(() {
-                                dialogLoading = false;
-                              });
-                            }
-                          }
-                        },
-                  child: dialogLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Envoyer'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+    // This method is now obsolete as we navigate to ResetPasswordScreen
   }
 }
-

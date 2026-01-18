@@ -48,37 +48,36 @@ class ExcelService {
     for (final purchase in purchases) {
       for (final item in purchase.items) {
         final parsedPaymentMethod = _parsePaymentMethodForExcel(purchase.paymentMethod);
-        final row = [
-          TextCellValue(purchase.date.year.toString()),
-          TextCellValue(purchase.date.month.toString()),
-          TextCellValue(purchase.refDA ?? ''),
-          TextCellValue(DateFormat('dd/MM/yyyy').format(purchase.date)),
-          TextCellValue(purchase.comments),
-          TextCellValue(NumberFormat('#,##0', 'fr_FR').format(item.unitPrice)),
-          DoubleCellValue(item.quantity),
-          TextCellValue(NumberFormat('#,##0', 'fr_FR').format(item.total)),
-          TextCellValue(item.category),
-          TextCellValue(item.subCategory1),
-          TextCellValue(item.subCategory2 ?? ''), // Only subCategory2
-          TextCellValue(purchase.clientName ?? ''),
-          TextCellValue(parsedPaymentMethod.miseAdBudget),
-          TextCellValue(parsedPaymentMethod.modeRglt),
-        ];
-        sheet.appendRow(row);
-
-        // Apply borders and alternating row colors to data cells
-        for (int i = 0; i < row.length; i++) {
-          final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
-          cell.cellStyle = CellStyle(
-            bottomBorder: Border(borderStyle: BorderStyle.Thin),
-            topBorder: Border(borderStyle: BorderStyle.Thin),
-            leftBorder: Border(borderStyle: BorderStyle.Thin),
-            rightBorder: Border(borderStyle: BorderStyle.Thin),
-            backgroundColorHex: (currentRow % 2 == 0) ? ExcelColor.fromHexString('#FFFFFF') : ExcelColor.fromHexString('#F0F0F0'), // White / Light grey
-          );
-        }
-        currentRow++;
-      }
+                final row = [
+                  TextCellValue(purchase.date.year.toString()),
+                  TextCellValue(purchase.date.month.toString()),
+                  TextCellValue(purchase.refDA ?? ''),
+                  TextCellValue(DateFormat('dd/MM/yyyy').format(purchase.date)),
+                  TextCellValue(purchase.comments),
+                  IntCellValue(item.unitPrice),
+                  DoubleCellValue(item.quantity),
+                  IntCellValue(item.total),
+                  TextCellValue(item.category),
+                  TextCellValue(item.subCategory1),
+                  TextCellValue(item.subCategory2 ?? ''), // Only subCategory2
+                  TextCellValue(purchase.clientName ?? ''),
+                  TextCellValue(parsedPaymentMethod.miseAdBudget),
+                  TextCellValue(parsedPaymentMethod.modeRglt),
+                ];
+                sheet.appendRow(row);
+        
+                // Apply borders and alternating row colors to data cells
+                for (int i = 0; i < row.length; i++) {
+                  final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
+                  cell.cellStyle = CellStyle(
+                    bottomBorder: Border(borderStyle: BorderStyle.Thin),
+                    topBorder: Border(borderStyle: BorderStyle.Thin),
+                    leftBorder: Border(borderStyle: BorderStyle.Thin),
+                    rightBorder: Border(borderStyle: BorderStyle.Thin),
+                    backgroundColorHex: (currentRow % 2 == 0) ? ExcelColor.fromHexString('#FFFFFF') : ExcelColor.fromHexString('#F0F0F0'), // White / Light grey
+                  );
+                                  }
+                currentRow++;      }
     }
 
     // Auto-fit columns
