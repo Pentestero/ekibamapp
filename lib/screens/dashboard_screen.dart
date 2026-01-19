@@ -41,6 +41,45 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.dispose();
   }
 
+  // New method for palette selection dialog
+  void _showPaletteSelectionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Choisir une palette'),
+          content: Consumer<ThemeController>(
+            builder: (context, themeController, child) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: AppPalette.values.map((palette) {
+                  return RadioListTile<AppPalette>(
+                    title: Text(palette.toString().split('.').last),
+                    value: palette,
+                    groupValue: themeController.palette,
+                    onChanged: (AppPalette? newPalette) {
+                      if (newPalette != null) {
+                        themeController.setPalette(newPalette);
+                        Navigator.of(dialogContext).pop(); // Dismiss after selection
+                      }
+                    },
+                  );
+                }).toList(),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Annuler'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final currencyFormat = NumberFormat('#,##0', 'fr_FR');
@@ -49,34 +88,52 @@ class _DashboardScreenState extends State<DashboardScreen>
       appBar: AppBar(
         title: const Text('Tableau de bord'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline),
-            tooltip: 'Aide',
-            onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => const HelpScreen(),
-              ));
+          PopupMenuButton<String>( // Consolidated Help, Theme, Palette
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) async {
+              if (value == 'help') {
+                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const HelpScreen()));
+              } else if (value == 'toggleTheme') {
+                final controller = context.read<ThemeController>();
+                controller.setMode(controller.mode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light);
+              } else if (value == 'selectPalette') {
+                _showPaletteSelectionDialog(context); // Call the new dialog
+              }
             },
-          ),
-          PopupMenuButton<AppPalette>(
-            icon: const Icon(Icons.palette),
-            onSelected: (value) => context.read<ThemeController>().setPalette(value),
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: AppPalette.blueAmber, child: Text('Bleu & Amber')),
-              PopupMenuItem(value: AppPalette.purplePink, child: Text('Violet & Rose')),
-              PopupMenuItem(value: AppPalette.greenTeal, child: Text('Vert & Teal')),
-              PopupMenuItem(value: AppPalette.redOrange, child: Text('Rouge & Orange')),
+            itemBuilder: (context) => [
+              PopupMenuItem<String>(
+                value: 'help',
+                child: Row(
+                  children: [
+                    const Icon(Icons.help_outline),
+                    const SizedBox(width: 8),
+                    const Text('Aide'),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'toggleTheme',
+                child: Row(
+                  children: [
+                    const Icon(Icons.brightness_6),
+                    const SizedBox(width: 8),
+                    const Text('Basculer Thème'),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'selectPalette',
+                child: Row(
+                  children: [
+                    const Icon(Icons.palette),
+                    const SizedBox(width: 8),
+                    const Text('Choisir Palette'),
+                  ],
+                ),
+              ),
             ],
           ),
-          IconButton(
-            icon: const Icon(Icons.brightness_6),
-            tooltip: 'Basculer thème',
-            onPressed: () {
-              final controller = context.read<ThemeController>();
-              controller.setMode(controller.mode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light);
-            },
-          ),
-          IconButton(
+          IconButton( // Logout remains a direct icon for quick access
             icon: const Icon(Icons.logout),
             tooltip: 'Se déconnecter',
             onPressed: () async {

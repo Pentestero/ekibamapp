@@ -33,11 +33,30 @@ Pour une gestion claire des informations de paiement et du budget, l'application
     *   Ce champ est une liste déroulante où vous pouvez sélectionner une personne ou un service responsable du budget si cela est différent du "Demandeur" (l'utilisateur connecté).
     *   La valeur sélectionnée ici n'apparaît **que dans le PDF de la "Demande d'Achat"** et uniquement si elle est différente du "Demandeur". Elle n'est **jamais** utilisée dans les rapports Excel.
 
-## 🚧 Fonctionnalités en Cours
+## 💡 Prochaine Étape : Intégration de l'IA (Scan de Facture)
 
-- **Amélioration du Tableau de Bord Administrateur :**
-  - Ajout de statistiques avancées (ex: "Top 5 des demandeurs", "Top 5 des méthodes de paiement").
-  - Intégration de graphiques pour visualiser ces nouvelles statistiques.
+Pour la prochaine phase de développement, nous allons intégrer une fonctionnalité révolutionnaire : le **Remplissage Automatique des Achats par Scan de Facture grâce à l'IA**.
+
+**Objectif :** L'utilisateur pourra prendre une photo ou uploader une facture (image/PDF), et l'application utilisera l'IA pour en extraire automatiquement les informations clés (fournisseur, date, articles, prix, quantités) afin de pré-remplir le formulaire d'achat.
+
+**Pour implémenter cette fonctionnalité, voici les étapes :**
+
+1.  **Configuration de l'API Gemini (ou autre service de vision par ordinateur) :**
+    *   Vous devrez obtenir une clé d'API pour un service d'IA capable d'analyser des images et d'extraire des informations (par exemple, l'API Gemini de Google Cloud, Azure AI Vision, etc.).
+    *   **Action pour vous :** Préparez une clé d'API valide pour le service d'IA de votre choix.
+    *   **Action pour moi :** J'intégrerai cette clé de manière sécurisée via des variables d'environnement Flutter (nécessite l'utilisation du package `flutter_dotenv` ou similaire).
+
+2.  **Mise à Jour des Dépendances Flutter :**
+    *   J'ajouterai le package `image_picker` pour la sélection d'images et potentiellement un package pour l'appel d'API HTTP (`dio` ou `http`) si non déjà présent, ainsi qu'un package pour les variables d'environnement (`flutter_dotenv`).
+
+3.  **Développement de l'Interface Utilisateur :**
+    *   J'ajouterai un bouton "Importer une Facture par IA" dans le `PurchaseFormScreen`.
+
+4.  **Logique d'Intégration de l'IA :**
+    *   Le code Flutter enverra l'image de la facture au service d'IA avec une requête spécifique pour extraire les données.
+    *   Le formulaire d'achat sera automatiquement pré-rempli avec les informations extraites.
+
+---
 
 ## 🛠️ Technologies Utilisées
 
@@ -87,41 +106,75 @@ Suivez ces étapes pour lancer le projet sur votre machine locale.
 
 ## Journal des modifications
 
+### Version 1.4.0 - Janvier 2026
+
+Cette version apporte une refonte majeure de l'expérience utilisateur, des fonctionnalités avancées de filtrage/export et corrige des bugs critiques.
+
+-   **Refonte UI/UX Générale :**
+    *   **Splash Screen Animé :** Nouvelle animation professionnelle au démarrage de l'application.
+    *   **Écrans d'Authentification Modernisés :** Design épuré, animations fluides et mise en page optimisée.
+    *   **Animations sur le Tableau de Bord :** Ajout d'animations "flip" subtiles aux cartes d'analyse.
+    *   **Squelettes de Chargement (Shimmer) :** Remplacement des indicateurs de chargement génériques par des effets "shimmer" pour une meilleure perception des performances sur tous les écrans principaux.
+    *   **Styles Unifiés :** Harmonisation des styles de formulaires (InputDecoration avec OutlineInputBorder) et de boutons pour une cohérence visuelle.
+    *   **Thème d'AppBar Amélioré :** Refonte des `AppBar` du `DashboardScreen` et `AdminDashboardScreen` pour un look plus moderne et attrayant, avec consolidation des actions secondaires dans un menu "Plus d'options" (`Icons.more_vert`).
+    *   **Détails Captivants sur `PurchaseCard` :** Dans l'historique, les cartes d'achat affichent désormais un résumé des articles inclus pour une meilleure densité d'information.
+
+-   **Filtrage et Exportation Avancés :**
+    *   **Panneau de Filtres Complet :** Introduction d'un panneau de filtres centralisé (`FilterPanel`) pour l'historique et le tableau de bord admin, incluant :
+        *   Recherche par mot-clé (Ref DA, Demandeur, Client, Catégorie, Articles).
+        *   Filtrage par Année et par Mois.
+        *   Options de Tri (par Date ou par Montant, croissant/décroissant).
+    *   **Chips de Filtres Actifs :** Affichage visuel des filtres appliqués sous forme de "chips" dynamiques, avec possibilité de les supprimer individuellement.
+    *   **Mode de Sélection pour l'Export :** Ajout d'un mode permettant de cocher manuellement des achats dans la liste. Le bouton d'export s'adapte pour "Exporter la sélection" (désactivé si rien n'est coché) ou "Exporter la liste filtrée" (si aucune sélection active).
+
+-   **Corrections de Bugs Critiques :**
+    *   **Référence d'Achat (`Ref DA`) :** Résolution définitive du problème de doublons via une fonction PostgreSQL atomique (`create_purchase_with_ref_da`) utilisant une table de compteurs journaliers.
+    *   **Filtre par Mois :** Correction d'un bug où la désélection du filtre de mois provoquait une erreur.
+    *   **Débordement de l'AppBar :** Résolution des problèmes de `RenderFlex overflow` dans les `AppBar`s sur petits écrans grâce à la consolidation des actions.
+    *   **Débordement du `DataTable` :** Le tableau des articles dans `PurchaseDetailScreen` gère désormais le défilement horizontal sur les écrans plus larges pour éviter les débordements.
+    *   **Changement de Devise :** Remplacement global de "FCFA" par "XAF" dans toute l'application et les exports.
+
+-   **Statut du Problème d'Export Excel ('PU' et 'Total' non calculables) :**
+    *   Identifié comme une limitation du package `excel` (v4.0.0). Malgré l'utilisation de `IntCellValue`, les tentatives de forcer le format numérique via `NumFormat` ou `cell.cellType` ont échoué en compilation. Les cellules sont exportées comme des entiers bruts, mais leur interprétation par Excel comme "texte" ou "général" qui bloque les calculs ne peut être résolue sans :
+        *   Mise à jour du package `excel` (recommandé si la version 4.0.0 est trop ancienne).
+        *   Changement de package d'export Excel.
+        *   Formatage manuel dans Excel par l'utilisateur.
+
 ### Version 1.3.0 - 31/12/2025
-- **Mise en Place du Rôle Administrateur**
-  - **Gestion des Rôles :** Implémentation d'un système de rôles admin via une table `app_admins` dans la base de données.
-  - **Mise à Jour des Politiques de Sécurité (RLS) :** Les politiques de sécurité ont été mises à jour pour permettre aux administrateurs de voir toutes les données des achats.
-- **Création du Tableau de Bord Administrateur**
-  - **Nouvel Écran Admin :** Un nouvel écran "Dashboard Admin" a été créé, visible uniquement par les utilisateurs admins.
-  - **Vue Globale :** Le tableau de bord admin affiche désormais tous les achats de tous les utilisateurs, avec des indicateurs clés globaux.
-  - **Détails des Achats :** Chaque achat dans la liste admin est cliquable et mène à une page de détail.
-  - **Fonctionnalités de Recherche et Export :** Une barre de recherche et un bouton pour exporter toutes les données vers Excel ont été ajoutés.
-- **Améliorations de l'Interface et de l'Expérience Utilisateur**
-  - **Écran d'Authentification :** L'écran d'authentification a été rendu "responsive" avec une mise en page améliorée pour les grands écrans.
-  - **Messages d'Erreur :** L'affichage des messages d'erreur sur les écrans de connexion et d'inscription a été amélioré pour une meilleure visibilité.
-  - **Correction de Text Overflow :** Des problèmes de débordement de texte sur le tableau de bord ont été corrigés.
-- **Correction de Bugs Majeurs**
-  - **Référence d'Achat (`Ref DA`) :** La logique de génération a été déplacée côté serveur pour garantir une unicité globale et éviter les doublons.
-  - **Réinitialisation de Mot de Passe :** Le flux de réinitialisation de mot de passe a été corrigé pour gérer correctement les redirections et éviter l'erreur `Code verifier not found`.
-  - **Correction des Erreurs de Compilation :** Multiples erreurs de compilation liées aux dépendances et à la syntaxe ont été résolues.
+-   **Mise en Place du Rôle Administrateur**
+    -   **Gestion des Rôles :** Implémentation d'un système de rôles admin via une table `app_admins` dans la base de données.
+    -   **Mise à Jour des Politiques de Sécurité (RLS) :** Les politiques de sécurité ont été mises à jour pour permettre aux administrateurs de voir toutes les données des achats.
+-   **Création du Tableau de Bord Administrateur**
+    -   **Nouvel Écran Admin :** Un nouvel écran "Dashboard Admin" a été créé, visible uniquement par les utilisateurs admins.
+    -   **Vue Globale :** Le tableau de bord admin affiche désormais tous les achats de tous les utilisateurs, avec des indicateurs clés globaux.
+    -   **Détails des Achats :** Chaque achat dans la liste admin est cliquable et mène à une page de détail.
+    -   **Fonctionnalités de Recherche et Export :** Une barre de recherche et un bouton pour exporter toutes les données vers Excel ont été ajoutés.
+-   **Améliorations de l'Interface et de l'Expérience Utilisateur**
+    -   **Écran d'Authentification :** L'écran d'authentification a été rendu "responsive" avec une mise en page améliorée pour les grands écrans.
+    -   **Messages d'Erreur :** L'affichage des messages d'erreur sur les écrans de connexion et d'inscription a été amélioré pour une meilleure visibilité.
+    -   **Correction de Text Overflow :** Des problèmes de débordement de texte sur le tableau de bord ont été corrigés.
+-   **Correction de Bugs Majeurs**
+    -   **Référence d'Achat (`Ref DA`) :** La logique de génération a été déplacée côté serveur pour garantir une unicité globale et éviter les doublons.
+    -   **Réinitialisation de Mot de Passe :** Le flux de réinitialisation de mot de passe a été corrigé pour gérer correctement les redirections et éviter l'erreur `Code verifier not found`.
+    -   **Correction des Erreurs de Compilation :** Multiples erreurs de compilation liées aux dépendances et à la syntaxe ont été résolues.
 
 ### Version 1.1.0 - 31/12/2025
-- **Implémentation des Spécifications du Cahier des Charges**
-  - **Refactorisation du Modèle de Données :** Mise à jour complète des modèles (`Purchase`, `PurchaseItem`) et de la base de données pour correspondre aux spécifications.
-  - **Nouveau Formulaire d'Achat :** Interface mise à jour avec un système de catégories hiérarchique à 3 niveaux et des champs conditionnels (`clientName`).
-  - **Génération de `Ref DA` :** Implémentation de la logique de génération de référence unique `DA-JJMMAAAA-X`.
-  - **Exports PDF & Excel :** Les services d'export ont été mis à jour pour générer le "Bon de Commande" et le rapport global de dépenses conformément aux formats spécifiés.
-- **Fonctionnalités Dynamiques (suite aux retours)**
-  - **Gestion Globale :** Les listes de `Catégories`, `Fournisseurs` et `Modes de Paiement` sont maintenant globales (partagées entre tous les utilisateurs) et chargées depuis la base de données.
-  - **Ajout depuis l'UI :** Des boutons (+) permettent d'ajouter de nouvelles entrées pour les catégories, fournisseurs et modes de paiement directement depuis le formulaire.
-  - **Gestion de "Aucun" Fournisseur :** L'option "Aucun" est maintenant disponible et gérée correctement.
-  - **Champ "Unité" :** Un champ "Unité" a été ajouté pour chaque article.
-- **Corrections de Bugs**
-  - Correction d'un bug majeur où la saisie dans les champs de texte des articles faisait perdre le focus.
-  - Correction de multiples erreurs de compilation et d'exécution liées aux changements de modèle et à l'API de la base de données.
+-   **Implémentation des Spécifications du Cahier des Charges**
+    -   **Refactorisation du Modèle de Données :** Mise à jour complète des modèles (`Purchase`, `PurchaseItem`) et de la base de données pour correspondre aux spécifications.
+    -   **Nouveau Formulaire d'Achat :** Interface mise à jour avec un système de catégories hiérarchique à 3 niveaux et des champs conditionnels (`clientName`).
+    -   **Génération de `Ref DA` :** Implémentation de la logique de génération de référence unique `DA-JJMMAAAA-X`.
+    -   **Exports PDF & Excel :** Les services d'export ont été mis à jour pour générer le "Bon de Commande" et le rapport global de dépenses conformément aux formats spécifiés.
+-   **Fonctionnalités Dynamiques (suite aux retours)**
+    -   **Gestion Globale :** Les listes de `Catégories`, `Fournisseurs` et `Modes de Paiement` sont maintenant globales (partagées entre tous les utilisateurs) et chargées depuis la base de données.
+    -   **Ajout depuis l'UI :** Des boutons (+) permettent d'ajouter de nouvelles entrées pour les catégories, fournisseurs et modes de paiement directement depuis le formulaire.
+    -   **Gestion de "Aucun" Fournisseur :** L'option "Aucun" est maintenant disponible et gérée correctement.
+    -   **Champ "Unité" :** Un champ "Unité" a été ajouté pour chaque article.
+-   **Corrections de Bugs**
+    -   Correction d'un bug majeur où la saisie dans les champs de texte des articles faisait perdre le focus.
+    -   Correction de multiples erreurs de compilation et d'exécution liées aux changements de modèle et à l'API de la base de données.
 
 ### Version 1.0.1 - 02/12/2025
-- **Correction du rendu PDF :**
-  - Correction d'un bug visuel où la case à cocher (✓) pour le type de projet ne s'affichait pas dans les factures PDF générées.
-  - Remplacement de l'implémentation personnalisée par le widget `Checkbox` standard de la bibliothèque `pdf` pour garantir un affichage fiable et correct sur toutes les plateformes.
-  - Suppression d'une case à cocher redondante et toujours activée dans la liste des articles du PDF.
+-   **Correction du rendu PDF :**
+    -   Correction d'un bug visuel où la case à cocher (✓) pour le type de projet ne s'affichait pas dans les factures PDF générées.
+    -   Remplacement de l'implémentation personnalisée par le widget `Checkbox` standard de la bibliothèque `pdf` pour garantir un affichage fiable et correct sur toutes les plateformes.
+    -   Suppression d'une case à cocher redondante et toujours activée dans la liste des articles du PDF.

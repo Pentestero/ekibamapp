@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:provisions/providers/purchase_provider.dart';
+import 'package:provisions/models/purchase.dart'; // ADD THIS IMPORT
 import 'package:provisions/widgets/admin_dashboard_skeleton.dart';
-import 'package:provisions/services/excel_service.dart';
 import 'package:provisions/screens/history_screen.dart'; // Re-using PurchaseCard
 import 'package:provisions/widgets/analytics_card.dart';
-import 'package:provisions/screens/purchase_detail_screen.dart'; // Import PurchaseDetailScreen
+import 'package:provisions/screens/purchase_detail_screen.dart';
 import 'package:provisions/widgets/admin_analytics_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:provisions/widgets/filter_panel.dart'; // Import the filter panel
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -18,25 +19,20 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     with SingleTickerProviderStateMixin {
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-
+  // State
+  FilterState _filterState = FilterState();
+  bool _isSelectionMode = false;
+  Set<int> _selectedPurchaseIds = {};
+  
+  // Animation
   late final AnimationController _contentController;
   late final Animation<double> _contentFadeAnimation;
-  late final Animation<Offset> _contentSlideAnimation;
 
   @override
   void initState() {
     super.initState();
-    // Use addPostFrameCallback to avoid calling provider during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PurchaseProvider>().loadAllPurchases();
-    });
-
-    _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text;
-      });
     });
 
     _contentController = AnimationController(
@@ -45,196 +41,273 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
     _contentFadeAnimation =
         CurvedAnimation(parent: _contentController, curve: Curves.easeIn);
-    _contentSlideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(
-        CurvedAnimation(parent: _contentController, curve: Curves.easeOutCubic));
     _contentController.forward();
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  void _showFilterPanel() {
+    final provider = context.read<PurchaseProvider>();
+    final availableYears = provider.allPurchases.map((p) => p.date.year).toSet().toList();
+    availableYears.sort((a, b) => b.compareTo(a));
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return FilterPanel(
+          initialFilters: _filterState,
+          availableYears: availableYears,
+          onFilterChanged: (newFilters) {
+            setState(() {
+              _filterState = newFilters;
+            });
+          },
+        );
+      },
+    );
+  }
+
+  List<Purchase> _getFilteredAndSortedPurchases(List<Purchase> allPurchases) {
+    List<Purchase> filteredList = List.from(allPurchases);
+
+    if (_filterState.searchQuery.isNotEmpty) {
+      final query = _filterState.searchQuery.toLowerCase();
+      filteredList = filteredList.where((p) =>
+          (p.refDA?.toLowerCase().contains(query) ?? false) ||
+          (p.demander.toLowerCase().contains(query)) ||
+          (p.clientName?.toLowerCase().contains(query) ?? false)
+      ).toList();
+    }
+    if (_filterState.year != null) {
+      filteredList = filteredList.where((p) => p.date.year == _filterState.year).toList();
+    }
+    if (_filterState.month != null) {
+      filteredList = filteredList.where((p) => p.date.month == _filterState.month).toList();
+    }
+    switch (_filterState.sortOption) {
+      case SortOption.dateAsc:
+        filteredList.sort((a, b) => a.date.compareTo(b.date));
+        break;
+      case SortOption.dateDesc:
+        filteredList.sort((a, b) => b.date.compareTo(a.date));
+        break;
+      case SortOption.amountAsc:
+        filteredList.sort((a, b) => a.grandTotal.compareTo(b.grandTotal));
+        break;
+      case SortOption.amountDesc:
+        filteredList.sort((a, b) => b.grandTotal.compareTo(a.grandTotal));
+        break;
+    }
+    return filteredList;
+  }
+  
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      _selectedPurchaseIds.clear();
+    });
+  }
+
+  void _togglePurchaseSelection(int purchaseId) {
+    setState(() {
+      if (_selectedPurchaseIds.contains(purchaseId)) {
+        _selectedPurchaseIds.remove(purchaseId);
+      } else {
+        _selectedPurchaseIds.add(purchaseId);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final currencyFormat = NumberFormat('#,##0', 'fr_FR');
     final provider = context.watch<PurchaseProvider>();
-
-    // Filter purchases based on search query
-    final filteredPurchases = provider.allPurchases.where((purchase) {
-      final query = _searchQuery.toLowerCase();
-      return (purchase.refDA?.toLowerCase().contains(query) ?? false) ||
-             (purchase.demander.toLowerCase().contains(query)) ||
-             (purchase.clientName?.toLowerCase().contains(query) ?? false);
-    }).toList();
+    final filteredPurchases = _getFilteredAndSortedPurchases(provider.allPurchases);
+    
+    final isAllSelected = _isSelectionMode &&
+        filteredPurchases.isNotEmpty &&
+        _selectedPurchaseIds.length == filteredPurchases.length;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard Admin'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => provider.loadAllPurchases(),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(kToolbarHeight),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Rechercher par Ref DA, Demandeur ou Client...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceVariant,
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                        },
-                      )
-                    : null,
-              ),
-            ),
-          ),
-        ),
+        title: _isSelectionMode ? Text('${_selectedPurchaseIds.length} sélectionné(s)') : const Text('Dashboard Admin'),
+        backgroundColor: Theme.of(context).colorScheme.primary, // Make AppBar attractive
+        foregroundColor: Theme.of(context).colorScheme.onPrimary, // Ensure icons and text are visible
+        actions: _buildAppBarActions(provider, filteredPurchases, isAllSelected),
       ),
       body: provider.isLoading
-          ? AdminDashboardSkeleton()          : FadeTransition(              opacity: _contentFadeAnimation,
-              child: SlideTransition(
-                position: _contentSlideAnimation,
-                child: RefreshIndicator(
-                  onRefresh: () => provider.loadAllPurchases(),
-                  child: ListView(
-                    padding: const EdgeInsets.all(16.0),
-                    children: [
-                      // Key Metrics
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          if (constraints.maxWidth < 600) {
-                            return Column(
-                              children: [
-                                AnalyticsCard(
-                                  title: 'Total Dépensé (Tous)',
-                                  value:
-                                      '${currencyFormat.format(provider.grandTotalSpentAll)} XAF',
-                                  icon: Icons.monetization_on,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                const SizedBox(height: 12),
-                                AnalyticsCard(
-                                  title: 'Nombre d\'Achats (Tous)',
-                                  value:
-                                      provider.totalNumberOfPurchasesAll.toString(),
-                                  icon: Icons.receipt_long,
-                                  color:
-                                      Theme.of(context).colorScheme.secondary,
-                                ),
-                              ],
-                            );
-                          } else {
-                            return Row(
-                              children: [
-                                Expanded(
-                                  child: AnalyticsCard(
-                                    title: 'Total Dépensé (Tous)',
-                                    value:
-                                        '${currencyFormat.format(provider.grandTotalSpentAll)} XAF',
-                                    icon: Icons.monetization_on,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: AnalyticsCard(
-                                    title: 'Nombre d\'Achats (Tous)',
-                                    value:
-                                        provider.totalNumberOfPurchasesAll.toString(),
-                                    icon: Icons.receipt_long,
-                                    color:
-                                        Theme.of(context).colorScheme.secondary,
-                                  ),
-                                ),
-                              ],
-                            );
-                          }
-                        },
+          ? AdminDashboardSkeleton()
+          : FadeTransition(
+              opacity: _contentFadeAnimation,
+              child: RefreshIndicator(
+                onRefresh: () => provider.loadAllPurchases(),
+                child: Column(
+                  children: [
+                    _buildFilterChipsBar(),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.all(16.0),
+                        children: [
+                          _buildKeyMetrics(currencyFormat, provider),
+                          const SizedBox(height: 24),
+                          Text('Toutes les Demandes d\'Achat', style: Theme.of(context).textTheme.headlineSmall),
+                          const Divider(height: 20),
+                          _buildPurchasesList(filteredPurchases),
+                          const SizedBox(height: 24),
+                          AdminAnalyticsChart(title: 'Top 5 Dépenseurs (Admin)', data: provider.topSpenders),
+                          AdminAnalyticsChart(title: 'Top Méthodes de Paiement (Admin)', data: provider.topPaymentMethods),
+                        ],
                       ),
-                      const SizedBox(height: 24),
-                      // List of all purchases
-                      Text(
-                        'Toutes les Demandes d\'Achat',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const Divider(height: 20),
-                      if (filteredPurchases.isEmpty)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 40),
-                            child: Text(
-                                'Aucun achat trouvé correspondant à la recherche.'),
-                          ),
-                        )
-                      else
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: filteredPurchases.length,
-                          itemBuilder: (context, index) {
-                            final purchase = filteredPurchases[index];
-                            // We can reuse the PurchaseCard from history_screen
-                            return InkWell(
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        PurchaseDetailScreen(purchase: purchase),
-                                  ),
-                                );
-                              },
-                              child: PurchaseCard(purchase: purchase),
-                            );
-                          },
-                        ),
-                      const SizedBox(height: 24),
-
-                      // Analytics Charts
-                      AdminAnalyticsChart(
-                        title: 'Top 5 Dépenseurs (Admin)',
-                        data: provider.topSpenders,
-                      ),
-                      AdminAnalyticsChart(
-                        title: 'Top Méthodes de Paiement (Admin)',
-                        data: provider.topPaymentMethods,
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          await ExcelService.shareExcelReport(
-              provider.allPurchases); // Export all, not just filtered
-        },
-        icon: const Icon(Icons.file_download),
-        label: const Text('Exporter tout (Excel)'),
+      floatingActionButton: _buildFab(provider, filteredPurchases),
+    );
+  }
+
+  List<Widget> _buildAppBarActions(PurchaseProvider provider, List<Purchase> filteredList, bool isAllSelected) {
+    if (_isSelectionMode) {
+      return [
+        Checkbox(
+          value: isAllSelected,
+          onChanged: (bool? value) {
+            setState(() {
+              if (value == true) {
+                _selectedPurchaseIds = filteredList.map((p) => p.id!).toSet();
+              } else {
+                _selectedPurchaseIds.clear();
+              }
+            });
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.cancel),
+          tooltip: 'Annuler la sélection',
+          onPressed: _toggleSelectionMode,
+        ),
+      ];
+    }
+    return [
+      IconButton(
+        icon: const Icon(Icons.filter_list),
+        tooltip: 'Filtrer et Trier',
+        onPressed: _showFilterPanel,
       ),
+      IconButton(
+        icon: const Icon(Icons.select_all),
+        tooltip: 'Sélectionner des achats',
+        onPressed: _toggleSelectionMode,
+      ),
+      IconButton(
+        icon: const Icon(Icons.refresh),
+        onPressed: () => provider.loadAllPurchases(),
+      ),
+    ];
+  }
+
+  Widget _buildFilterChipsBar() {
+    // This is identical to the one in HistoryScreen, can be extracted to a common widget later
+    List<Widget> chips = [];
+    if (_filterState.searchQuery.isNotEmpty) {
+      chips.add(Chip(label: Text('Recherche: "${_filterState.searchQuery}"'), onDeleted: () => setState(() => _filterState = _filterState.copyWith(searchQuery: ''))));
+    }
+    if (_filterState.year != null) {
+      chips.add(Chip(label: Text('Année: ${_filterState.year}'), onDeleted: () => setState(() => _filterState = _filterState.copyWith(resetYear: true))));
+    }
+    if (_filterState.month != null) {
+      chips.add(Chip(label: Text('Mois: ${_filterState.month != null ? DateFormat.MMMM('fr_FR').format(DateTime(0, _filterState.month!)) : ''}'), onDeleted: () => setState(() => _filterState = _filterState.copyWith(resetMonth: true))));
+    }
+    if (chips.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+      child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Wrap(spacing: 8.0, children: chips)),
+    );
+  }
+
+  Widget _buildKeyMetrics(NumberFormat currencyFormat, PurchaseProvider provider) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cards = [
+          AnalyticsCard(
+            title: 'Total Dépensé (Tous)',
+            value: '${currencyFormat.format(provider.grandTotalSpentAll)} XAF',
+            icon: Icons.monetization_on,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          AnalyticsCard(
+            title: 'Nombre d\'Achats (Tous)',
+            value: provider.totalNumberOfPurchasesAll.toString(),
+            icon: Icons.receipt_long,
+            color: Theme.of(context).colorScheme.secondary,
+          ),
+        ];
+        if (constraints.maxWidth < 600) {
+          return Column(children: [cards[0], const SizedBox(height: 12), cards[1]]);
+        }
+        return Row(children: [Expanded(child: cards[0]), const SizedBox(width: 12), Expanded(child: cards[1])]);
+      },
+    );
+  }
+
+  Widget _buildPurchasesList(List<Purchase> filteredPurchases) {
+    if (filteredPurchases.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 40),
+          child: Text('Aucun achat trouvé correspondant aux filtres.'),
+        ),
+      );
+    }
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: filteredPurchases.length,
+      itemBuilder: (context, index) {
+        final purchase = filteredPurchases[index];
+        return InkWell(
+          onTap: () {
+            if (!_isSelectionMode) {
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) => PurchaseDetailScreen(purchase: purchase)));
+            } else {
+              _togglePurchaseSelection(purchase.id!);
+            }
+          },
+          child: PurchaseCard(
+            purchase: purchase,
+            isSelectionMode: _isSelectionMode,
+            isSelected: _selectedPurchaseIds.contains(purchase.id),
+            onToggleSelection: () => _togglePurchaseSelection(purchase.id!),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget? _buildFab(PurchaseProvider provider, List<Purchase> filteredPurchases) {
+    final bool canExport = _isSelectionMode ? _selectedPurchaseIds.isNotEmpty : filteredPurchases.isNotEmpty;
+    final String label = _isSelectionMode ? 'Exporter la sélection (${_selectedPurchaseIds.length})' : 'Exporter la liste (${filteredPurchases.length})';
+    
+    return FloatingActionButton.extended(
+      onPressed: canExport ? () {
+        final List<Purchase> toExport;
+        if (_isSelectionMode) {
+          toExport = provider.allPurchases.where((p) => _selectedPurchaseIds.contains(p.id!)).toList();
+        } else {
+          toExport = filteredPurchases;
+        }
+        provider.exportToExcel(toExport);
+      } : null,
+      icon: const Icon(Icons.file_download),
+      label: Text(label),
+      backgroundColor: canExport ? Theme.of(context).colorScheme.primary : Colors.grey,
     );
   }
 }

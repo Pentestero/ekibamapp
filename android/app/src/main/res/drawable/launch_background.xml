@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
-
-    <!-- You can insert your own image assets here -->
-    <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/ekibam_logo" />
-    </item>
+ <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Élément 1 : La couleur de fond de votre écran de démarrage -->
+        <item>
+            <!-- Choisissez ici une couleur unie, par exemple blanc (#FFFFFF) ou la couleur principale de votre app -->
+         <color android:color="#FFFFFF"/>
+        </item>
+                 <!-- Élément 2 : Votre logo centré -->
+        <item>
+            <bitmap
+                android:gravity="center"
+                android:src="@mipmap/EKIBAM"/> <!-- Référence à votre fichier EKIBAM.jpg ou .png -->
+        </item>
 </layer-list>

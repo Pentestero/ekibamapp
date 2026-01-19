@@ -67,6 +67,7 @@ class ExcelService {
                 sheet.appendRow(row);
         
                 // Apply borders and alternating row colors to data cells
+                // Apply borders and alternating row colors to data cells
                 for (int i = 0; i < row.length; i++) {
                   final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
                   cell.cellStyle = CellStyle(
@@ -76,7 +77,7 @@ class ExcelService {
                     rightBorder: Border(borderStyle: BorderStyle.Thin),
                     backgroundColorHex: (currentRow % 2 == 0) ? ExcelColor.fromHexString('#FFFFFF') : ExcelColor.fromHexString('#F0F0F0'), // White / Light grey
                   );
-                                  }
+                }
                 currentRow++;      }
     }
 

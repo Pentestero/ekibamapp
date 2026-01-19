@@ -1,13 +1,12 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:provisions/providers/purchase_provider.dart';
 import 'package:provisions/models/purchase.dart';
 import 'package:intl/intl.dart';
 import 'package:provisions/widgets/app_brand.dart';
-import 'package:provisions/screens/purchase_form_screen.dart'; // ADDED BACK
-import 'package:provisions/widgets/history_skeleton.dart'; // ADDED
+import 'package:provisions/screens/purchase_form_screen.dart';
+import 'package:provisions/widgets/history_skeleton.dart';
+import 'package:provisions/widgets/filter_panel.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -16,34 +15,24 @@ class HistoryScreen extends StatefulWidget {
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen>
-    with SingleTickerProviderStateMixin { // Make sure this mixin is present
-  String _selectedFilter = 'Tous';
-  int? _selectedYear;
-  late List<String> _filterOptions;
-  late List<int> _yearOptions;
-
+class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderStateMixin {
+  // Animation
   late final AnimationController _contentController;
   late final Animation<double> _contentFadeAnimation;
-  late final Animation<Offset> _contentSlideAnimation;
+
+  // State
+  FilterState _filterState = FilterState();
+  bool _isSelectionMode = false;
+  Set<int> _selectedPurchaseIds = {};
 
   @override
   void initState() {
     super.initState();
-    _filterOptions = ['Tous', 'Cette semaine', 'Ce mois'];
-    _yearOptions = [];
-
     _contentController = AnimationController(
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    _contentFadeAnimation =
-        CurvedAnimation(parent: _contentController, curve: Curves.easeIn);
-    _contentSlideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(
-        CurvedAnimation(parent: _contentController, curve: Curves.easeOutCubic));
+    _contentFadeAnimation = CurvedAnimation(parent: _contentController, curve: Curves.easeIn);
     _contentController.forward();
   }
 
@@ -53,117 +42,241 @@ class _HistoryScreenState extends State<HistoryScreen>
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Watch the provider to get updates and rebuild the UI
-    final provider = context.watch<PurchaseProvider>();
+  void _showFilterPanel() {
+    final provider = context.read<PurchaseProvider>();
+    final availableYears = provider.purchases.map((p) => p.date.year).toSet().toList();
+    availableYears.sort((a, b) => b.compareTo(a));
 
-    // Derive year options from the full list of purchases
-    _yearOptions = provider.purchases.map((p) => p.date.year).toSet().toList();
-    _yearOptions.sort((a, b) => b.compareTo(a)); // Sort descending
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const AppBrand(),
-        actions: [
-          _buildFilterMenu(),
-          _buildYearFilterMenu(), // Added year filter menu
-          IconButton(
-            icon: const Icon(Icons.file_download),
-            onPressed: () => provider.exportToExcel(),
-          ),
-        ],
-      ),
-      body: _buildBody(provider), // Use a helper for the body
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return FilterPanel(
+          initialFilters: _filterState,
+          availableYears: availableYears,
+          onFilterChanged: (newFilters) {
+            setState(() {
+              _filterState = newFilters;
+            });
+          },
+        );
+      },
     );
   }
 
-  // New method to build the body, replacing the Consumer
-  Widget _buildBody(PurchaseProvider provider) {
+  List<Purchase> _getFilteredAndSortedPurchases(List<Purchase> allPurchases) {
+    List<Purchase> filteredList = List.from(allPurchases);
+
+    if (_filterState.searchQuery.isNotEmpty) {
+      final query = _filterState.searchQuery.toLowerCase();
+      filteredList = filteredList.where((p) {
+        return (p.refDA?.toLowerCase().contains(query) ?? false) ||
+            (p.demander.toLowerCase().contains(query)) ||
+            (p.clientName?.toLowerCase().contains(query) ?? false) ||
+            p.items.any((item) =>
+                item.category.toLowerCase().contains(query) ||
+                item.subCategory1.toLowerCase().contains(query) ||
+                (item.subCategory2?.toLowerCase().contains(query) ?? false));
+      }).toList();
+    }
+
+    if (_filterState.year != null) {
+      filteredList = filteredList.where((p) => p.date.year == _filterState.year).toList();
+    }
+
+    if (_filterState.month != null) {
+      filteredList = filteredList.where((p) => p.date.month == _filterState.month).toList();
+    }
+
+    switch (_filterState.sortOption) {
+      case SortOption.dateAsc:
+        filteredList.sort((a, b) => a.date.compareTo(b.date));
+        break;
+      case SortOption.dateDesc:
+        filteredList.sort((a, b) => b.date.compareTo(a.date));
+        break;
+      case SortOption.amountAsc:
+        filteredList.sort((a, b) => a.grandTotal.compareTo(b.grandTotal));
+        break;
+      case SortOption.amountDesc:
+        filteredList.sort((a, b) => b.grandTotal.compareTo(a.grandTotal));
+        break;
+    }
+
+    return filteredList;
+  }
+
+  void _onExport(List<Purchase> purchasesToExport) {
+    if (purchasesToExport.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucun achat à exporter.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+    context.read<PurchaseProvider>().exportToExcel(purchasesToExport);
+  }
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      _selectedPurchaseIds.clear();
+    });
+  }
+
+  void _togglePurchaseSelection(int purchaseId) {
+    setState(() {
+      if (_selectedPurchaseIds.contains(purchaseId)) {
+        _selectedPurchaseIds.remove(purchaseId);
+      } else {
+        _selectedPurchaseIds.add(purchaseId);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<PurchaseProvider>();
+    final allPurchases = provider.purchases;
+    final filteredAndSortedPurchases = _getFilteredAndSortedPurchases(allPurchases);
+
+    final isAllSelected = _isSelectionMode &&
+        filteredAndSortedPurchases.isNotEmpty &&
+        _selectedPurchaseIds.length == filteredAndSortedPurchases.length;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: _isSelectionMode ? Text('${_selectedPurchaseIds.length} sélectionné(s)') : const AppBrand(),
+        actions: _buildAppBarActions(provider, filteredAndSortedPurchases, isAllSelected),
+      ),
+      body: _buildBody(provider, filteredAndSortedPurchases),
+    );
+  }
+
+  List<Widget> _buildAppBarActions(PurchaseProvider provider, List<Purchase> filteredList, bool isAllSelected) {
+    if (_isSelectionMode) {
+      return [
+        Checkbox(
+          value: isAllSelected,
+          onChanged: (bool? value) {
+            setState(() {
+              if (value == true) {
+                _selectedPurchaseIds = filteredList.map((p) => p.id!).toSet();
+              } else {
+                _selectedPurchaseIds.clear();
+              }
+            });
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.download),
+          tooltip: 'Exporter la sélection',
+          onPressed: _selectedPurchaseIds.isNotEmpty
+              ? () {
+                  final selected = provider.purchases.where((p) => _selectedPurchaseIds.contains(p.id!)).toList();
+                  _onExport(selected);
+                }
+              : null,
+        ),
+        IconButton(
+          icon: const Icon(Icons.cancel),
+          tooltip: 'Annuler la sélection',
+          onPressed: _toggleSelectionMode,
+        ),
+      ];
+    } else {
+      return [
+        IconButton(
+          icon: const Icon(Icons.filter_list),
+          tooltip: 'Filtrer et Trier',
+          onPressed: _showFilterPanel,
+        ),
+        IconButton(
+          icon: const Icon(Icons.select_all),
+          tooltip: 'Sélectionner des achats',
+          onPressed: _toggleSelectionMode,
+        ),
+        IconButton(
+          icon: const Icon(Icons.file_download),
+          tooltip: 'Exporter la liste filtrée',
+          onPressed: () => _onExport(filteredList),
+        ),
+      ];
+    }
+  }
+
+  Widget _buildBody(PurchaseProvider provider, List<Purchase> filteredAndSortedPurchases) {
     if (provider.isLoading && provider.purchases.isEmpty) {
       return HistorySkeleton();
     }
     if (provider.errorMessage.isNotEmpty) {
       return _buildErrorWidget(context, provider);
     }
-
-    final filteredPurchases = _getFilteredPurchases(provider.purchases);
-
-    if (filteredPurchases.isEmpty) {
-      return _buildEmptyStateWidget(context);
-    }
-
+    
     return FadeTransition(
       opacity: _contentFadeAnimation,
-      child: SlideTransition(
-        position: _contentSlideAnimation,
-        child: RefreshIndicator(
-          onRefresh: () => provider.loadPurchases(),
-          child: Column(
-            children: [
-              _buildSummaryHeader(context, filteredPurchases),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: filteredPurchases.length,
-                  itemBuilder: (context, index) {
-                    final purchase = filteredPurchases[index];
-                    return PurchaseCard(purchase: purchase);
-                  },
-                ),
-              ),
-            ],
-          ),
+      child: RefreshIndicator(
+        onRefresh: () => provider.loadPurchases(),
+        child: Column(
+          children: [
+            _buildFilterChipsBar(),
+            Expanded(
+              child: filteredAndSortedPurchases.isEmpty
+                  ? _buildEmptyStateWidget(context)
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(8),
+                      itemCount: filteredAndSortedPurchases.length,
+                      itemBuilder: (context, index) {
+                        final purchase = filteredAndSortedPurchases[index];
+                        return PurchaseCard(
+                          purchase: purchase,
+                          isSelectionMode: _isSelectionMode,
+                          isSelected: _selectedPurchaseIds.contains(purchase.id),
+                          onToggleSelection: () => _togglePurchaseSelection(purchase.id!),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  PopupMenuButton<String> _buildFilterMenu() {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.filter_list),
-      onSelected: (value) => setState(() => _selectedFilter = value),
-      itemBuilder: (context) => _filterOptions
-          .map((option) => PopupMenuItem(
-                value: option,
-                child: Text(option,
-                    style: TextStyle(
-                        fontWeight: _selectedFilter == option
-                            ? FontWeight.bold
-                            : FontWeight.normal)),
-              ))
-          .toList(),
-    );
-  }
+  Widget _buildFilterChipsBar() {
+    List<Widget> chips = [];
+    if (_filterState.searchQuery.isNotEmpty) {
+      chips.add(Chip(
+        label: Text('Recherche: "${_filterState.searchQuery}"'),
+        onDeleted: () => setState(() => _filterState = _filterState.copyWith(searchQuery: '')),
+      ));
+    }
+    if (_filterState.year != null) {
+      chips.add(Chip(
+        label: Text('Année: ${_filterState.year}'),
+        onDeleted: () => setState(() => _filterState = _filterState.copyWith(resetYear: true)),
+      ));
+    }
+    if (_filterState.month != null) {
+      chips.add(Chip(
+        label: Text('Mois: ${_filterState.month != null ? DateFormat.MMMM('fr_FR').format(DateTime(0, _filterState.month!)) : ''}'),
+        onDeleted: () => setState(() => _filterState = _filterState.copyWith(resetMonth: true)),
+      ));
+    }
+    
+    if (chips.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
-  // New method for the year filter menu
-  PopupMenuButton<int?> _buildYearFilterMenu() {
-    return PopupMenuButton<int?>(
-      icon: const Icon(Icons.calendar_today_outlined),
-      tooltip: 'Filtrer par année',
-      onSelected: (value) => setState(() => _selectedYear = value),
-      itemBuilder: (context) {
-        final items = <PopupMenuEntry<int?>>[
-          PopupMenuItem(
-            value: null, // Represents "All years"
-            child: Text('Toutes les années',
-                style: TextStyle(
-                    fontWeight: _selectedYear == null
-                        ? FontWeight.bold
-                        : FontWeight.normal)),
-          ),
-          if (_yearOptions.isNotEmpty) const PopupMenuDivider(),
-        ];
-        items.addAll(_yearOptions.map((year) => PopupMenuItem(
-              value: year,
-              child: Text(year.toString(),
-                  style: TextStyle(
-                      fontWeight: _selectedYear == year
-                          ? FontWeight.bold
-                          : FontWeight.normal)),
-            )));
-        return items;
-      },
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Wrap(
+          spacing: 8.0,
+          children: chips,
+        ),
+      ),
     );
   }
 
@@ -173,269 +286,187 @@ class _HistoryScreenState extends State<HistoryScreen>
         ? 'Erreur de connexion.\nVeuillez vérifier votre connexion internet et réessayer.'
         : provider.errorMessage;
 
-    return Center(
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(isNetworkError ? Icons.wifi_off : Icons.error_outline,
-          size: 64, color: Colors.red),
-      const SizedBox(height: 16),
-      Text(errorMessage, textAlign: TextAlign.center),
-      const SizedBox(height: 16),
-      ElevatedButton(
-          onPressed: () => provider.loadPurchases(),
-          child: const Text('Réessayer')),
+    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Icon(isNetworkError ? Icons.wifi_off : Icons.error_outline, size: 64, color: Colors.red),
+      const SizedBox(height: 16), Text(errorMessage, textAlign: TextAlign.center),
+      const SizedBox(height: 16), ElevatedButton(onPressed: () => provider.loadPurchases(), child: const Text('Réessayer')),
     ]));
   }
 
   Widget _buildEmptyStateWidget(BuildContext context) {
-    return Center(
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       const Icon(Icons.history, size: 64, color: Colors.grey),
-      const SizedBox(height: 16),
-      Text(_selectedFilter == 'Tous' && _selectedYear == null
-          ? 'Aucun achat enregistré'
-          : 'Aucun achat pour ce filtre'),
+      const SizedBox(height: 16), Text('Aucun achat trouvé pour les filtres actuels'),
     ]));
-  }
-
-  Container _buildSummaryHeader(
-      BuildContext context, List<Purchase> purchases) {
-    // Updated to show year filter
-    final yearFilterText = _selectedYear == null ? '' : ' - $_selectedYear';
-    final summaryText =
-        'Filtre: $_selectedFilter$yearFilterText (${purchases.length})';
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Theme.of(context).colorScheme.surface.withAlpha(100),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth < 600) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(summaryText),
-                const SizedBox(height: 8),
-                Text(
-                    'Total: ${NumberFormat('#,##0', 'fr_FR').format(_getTotalAmount(purchases))} XAF',
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            );
-          } else {
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(summaryText),
-                Text(
-                    'Total: ${NumberFormat('#,##0', 'fr_FR').format(_getTotalAmount(purchases))} XAF',
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            );
-          }
-        },
-      ),
-    );
-  }
-
-  List<Purchase> _getFilteredPurchases(List<Purchase> purchases) {
-    final now = DateTime.now();
-    
-    // Start with the full list
-    List<Purchase> filteredList = List.from(purchases);
-
-    // Apply date range filter
-    switch (_selectedFilter) {
-      case 'Cette semaine':
-        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-        filteredList = filteredList.where((p) => p.date.isAfter(startOfWeek.subtract(const Duration(days: 1)))).toList();
-        break;
-      case 'Ce mois':
-        final startOfMonth = DateTime(now.year, now.month, 1);
-        filteredList = filteredList.where((p) => p.date.isAfter(startOfMonth.subtract(const Duration(days: 1)))).toList();
-        break;
-      default:
-        // 'Tous' filter, do nothing
-        break;
-    }
-
-    // Apply year filter
-    if (_selectedYear != null) {
-      filteredList = filteredList.where((p) => p.date.year == _selectedYear).toList();
-    }
-
-    return filteredList;
-  }
-
-  int _getTotalAmount(List<Purchase> purchases) {
-    return purchases.fold(0, (sum, p) => sum + p.grandTotal);
   }
 }
 
 class PurchaseCard extends StatelessWidget {
   final Purchase purchase;
-  const PurchaseCard({super.key, required this.purchase});
+  final bool isSelectionMode;
+  final bool isSelected;
+  final VoidCallback onToggleSelection;
+
+  const PurchaseCard({
+    super.key,
+    required this.purchase,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    required this.onToggleSelection,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.read<PurchaseProvider>();
-    final formattedDate = DateFormat('dd/MM/yyyy').format(purchase.date);
-    
-    final subtitleText = purchase.projectType == 'Client' && (purchase.clientName?.isNotEmpty ?? false)
-        ? 'Projet: ${purchase.projectType} (${purchase.clientName})'
-        : 'Projet: ${purchase.projectType}';
-
-    final trailingActions = LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 600) { // For small screens
-          return PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'pdf') {
-                provider.exportInvoiceToPdf(purchase);
-              } else if (value == 'edit') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PurchaseFormScreen(purchase: purchase),
-                  ),
-                );
-              } else if (value == 'delete') {
-                _showDeleteDialog(context, provider, purchase);
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'pdf',
-                child: Row(children: [
-                  Icon(Icons.picture_as_pdf, color: Colors.red.shade700),
-                  const SizedBox(width: 8),
-                  const Text('Générer PDF'),
-                ]),
-              ),
-              PopupMenuItem(
-                value: 'edit',
-                child: Row(children: [
-                  Icon(Icons.edit, color: Colors.blue.shade700),
-                  const SizedBox(width: 8),
-                  const Text('Modifier'),
-                ]),
-              ),
-              PopupMenuItem(
-                value: 'delete',
-                child: Row(children: [
-                  Icon(Icons.delete, color: Colors.grey.shade600),
-                  const SizedBox(width: 8),
-                  const Text('Supprimer'),
-                ]),
-              ),
-            ],
-          );
-        } else { // For large screens
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.picture_as_pdf),
-                color: Colors.red.shade700,
-                tooltip: 'Générer la facture PDF',
-                onPressed: () => provider.exportInvoiceToPdf(purchase),
-              ),
-              IconButton(
-                icon: const Icon(Icons.edit),
-                color: Colors.blue.shade700,
-                tooltip: 'Modifier',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PurchaseFormScreen(purchase: purchase),
-                    ),
-                  );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete),
-                color: Colors.grey.shade600,
-                tooltip: 'Supprimer',
-                onPressed: () => _showDeleteDialog(context, provider, purchase),
-              ),
-            ],
-          );
-        }
-      },
-    );
-
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    purchase.refDA ?? 'N/A',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    overflow: TextOverflow.ellipsis,
+      child: InkWell(
+        onTap: isSelectionMode ? onToggleSelection : null,
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isSelectionMode)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: Checkbox(
+                    value: isSelected,
+                    onChanged: (value) => onToggleSelection(),
                   ),
                 ),
-                trailingActions,
-              ],
-            ),
-            const Divider(),
-            const SizedBox(height: 4),
-            Text(
-              'Demandeur: ${purchase.demander}',
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitleText,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    '${NumberFormat('#,##0', 'fr_FR').format(purchase.grandTotal)} XAF',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            purchase.refDA ?? 'N/A',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        _buildTrailingActions(context),
+                      ],
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    const Divider(),
+                    const SizedBox(height: 4),
+                    Text('Demandeur: ${purchase.demander}', overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text(
+                      purchase.projectType == 'Client' && (purchase.clientName?.isNotEmpty ?? false)
+                          ? 'Projet: ${purchase.projectType} (${purchase.clientName})'
+                          : 'Projet: ${purchase.projectType}',
+                      overflow: TextOverflow.ellipsis
+                    ),
+                    const SizedBox(height: 8),
+                    if (purchase.items.isNotEmpty) ...[
+                      Text(
+                        'Articles (${purchase.items.length}): ${purchase.items.map((item) => item.subCategory2 ?? item.subCategory1).take(2).join(', ')}${purchase.items.length > 2 ? '...' : ''}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${NumberFormat('#,##0', 'fr_FR').format(purchase.grandTotal)} XAF',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(DateFormat('dd/MM/yyyy').format(purchase.date)),
+                      ],
+                    ),
+                  ],
                 ),
-                Text(formattedDate),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
-}
 
-void _showDeleteDialog(BuildContext context, PurchaseProvider provider, Purchase purchase) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Supprimer l\'achat'),
-      content: Text('Êtes-vous sûr de vouloir supprimer cet achat du ${DateFormat('dd/MM/yyyy').format(purchase.date)} ? Cette action est irréversible.'),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Annuler')),
-        TextButton(
-          child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
-          onPressed: () {
-            Navigator.of(context).pop();
-            provider.deletePurchase(purchase.id!);
-          },
+  Widget _buildTrailingActions(BuildContext context) {
+    if (isSelectionMode) {
+      return const SizedBox.shrink(); // Hide actions in selection mode
+    }
+
+    final provider = context.read<PurchaseProvider>();
+
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        if (value == 'pdf') {
+          provider.exportInvoiceToPdf(purchase);
+        } else if (value == 'edit') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PurchaseFormScreen(purchase: purchase),
+            ),
+          );
+        } else if (value == 'delete') {
+          _showDeleteDialog(context, provider, purchase);
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'pdf',
+          child: Row(children: [
+            Icon(Icons.picture_as_pdf, color: Colors.red.shade700),
+            const SizedBox(width: 8),
+            const Text('Générer PDF'),
+          ]),
+        ),
+        PopupMenuItem(
+          value: 'edit',
+          child: Row(children: [
+            Icon(Icons.edit, color: Colors.blue.shade700),
+            const SizedBox(width: 8),
+            const Text('Modifier'),
+          ]),
+        ),
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(children: [
+            Icon(Icons.delete, color: Colors.grey.shade600),
+            const SizedBox(width: 8),
+            const Text('Supprimer'),
+          ]),
         ),
       ],
-    ),
-  );
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, PurchaseProvider provider, Purchase purchase) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer l\'achat'),
+        content: Text('Êtes-vous sûr de vouloir supprimer cet achat du ${DateFormat('dd/MM/yyyy').format(purchase.date)} ? Cette action est irréversible.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Annuler')),
+          TextButton(
+            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+            onPressed: () {
+              Navigator.of(context).pop();
+              provider.deletePurchase(purchase.id!);
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -496,10 +496,10 @@ class PurchaseProvider with ChangeNotifier {
     return name;
   }
 
-  Future<void> exportToExcel() async {
+  Future<void> exportToExcel(List<Purchase> purchasesToExport) async {
     _isLoading = true;
     notifyListeners();
-    await ExcelService.shareExcelReport(_purchases);
+    await ExcelService.shareExcelReport(purchasesToExport);
     _isLoading = false;
     notifyListeners();
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart'; // ADD THIS IMPORT
 import 'package:provider/provider.dart';
 import 'package:provisions/providers/purchase_provider.dart';
 import 'package:provisions/services/auth_service.dart';
@@ -6,11 +7,12 @@ import 'package:provisions/theme.dart';
 import 'package:provisions/screens/home_page.dart';
 import 'package:provisions/screens/auth_screen.dart';
 import 'package:provisions/screens/splash_screen.dart';
-import 'package:provisions/screens/reset_password_screen.dart'; // Import the new screen
+import 'package:provisions/screens/reset_password_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('fr_FR', null); // ADD THIS CALL
 
   await Supabase.initialize(
     url: 'https://ajparjbrzvaxfpafjbad.supabase.co',
