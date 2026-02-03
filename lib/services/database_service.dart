@@ -74,14 +74,23 @@ class DatabaseService {
       };
 
       // Call the database function
-      final data = await _supabase.rpc(
+      final rpcResult = await _supabase.rpc(
         'create_purchase_with_ref_da',
         params: params,
       );
 
-      // The function returns the complete new purchase as JSON.
-      // We just need to parse it back into our Dart model.
-      return Purchase.fromMap(data);
+      // Assuming rpcResult is a List containing a single Map with the purchase ID.
+      // Adjust this parsing based on the actual return type of your RPC function.
+      final newPurchaseId = (rpcResult as List<dynamic>).first['id'] as int;
+
+      // Now, fetch the complete purchase record including its items to ensure all fields are correctly populated.
+      final fetchedPurchaseData = await _supabase
+          .from('purchases')
+          .select('*, purchase_items(*, suppliers(*))')
+          .eq('id', newPurchaseId)
+          .single();
+
+      return Purchase.fromMap(fetchedPurchaseData);
 
     } catch (e) {
       debugPrint("Erreur lors de l'appel RPC pour ajouter l'achat: $e");
