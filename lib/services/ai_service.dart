@@ -1,10 +1,14 @@
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart' show kIsWeb; // Added import
 import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
 
 class AIService {
-  static final String? _apiKey = dotenv.env['GEMINI_API_KEY'];
+  static final String? _apiKey = kIsWeb
+      ? const String.fromEnvironment('GEMINI_API_KEY') // Conditional for web
+      : dotenv.env['GEMINI_API_KEY']; // Original for non-web
+
   static const String _url =
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent';
 
