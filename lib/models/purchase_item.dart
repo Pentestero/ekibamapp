@@ -14,7 +14,7 @@ class PurchaseItem {
   final int unitPrice;
   final int paymentFee;
   final String? comment;
-  final DateTime? choiceDate;
+  final DateTime? expenseDate; // Replaced choiceDate with expenseDate
 
   final String? supplierName;
 
@@ -32,7 +32,7 @@ class PurchaseItem {
     this.paymentFee = 0,
     this.supplierName,
     this.comment,
-    this.choiceDate,
+    this.expenseDate, // Updated in constructor
   }) : _localId = localId ?? DateTime.now().millisecondsSinceEpoch;
 
   int get total => ((quantity * unitPrice) + paymentFee).round();
@@ -53,7 +53,7 @@ class PurchaseItem {
       'unit_price': unitPrice,
       'payment_fee': paymentFee,
       'comment': comment,
-      'choice_date': choiceDate?.toIso8601String(),
+      'expense_date': expenseDate?.toIso8601String(), // Updated in toMap
     };
   }
 
@@ -74,9 +74,9 @@ class PurchaseItem {
       paymentFee: (map['payment_fee'] as num?)?.toInt() ?? 0,
       comment: map['comment'] as String?,
       supplierName: supplierName,
-      choiceDate: map['choice_date'] == null
+      expenseDate: map['expense_date'] == null // Updated in fromMap
           ? null
-          : DateTime.parse(map['choice_date'] as String),
+          : DateTime.parse(map['expense_date'] as String),
     );
   }
 
@@ -94,7 +94,7 @@ class PurchaseItem {
     int? paymentFee,
     String? supplierName,
     String? comment,
-    DateTime? choiceDate,
+    DateTime? expenseDate, // Updated in copyWith parameters
   }) {
     return PurchaseItem(
       id: id ?? this.id,
@@ -110,7 +110,7 @@ class PurchaseItem {
       paymentFee: paymentFee ?? this.paymentFee,
       supplierName: supplierName ?? this.supplierName,
       comment: comment ?? this.comment,
-      choiceDate: choiceDate ?? this.choiceDate,
+      expenseDate: expenseDate ?? this.expenseDate, // Updated in copyWith body
     );
   }
 

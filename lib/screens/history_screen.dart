@@ -371,14 +371,14 @@ class PurchaseCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
-                      // Display choiceDate for each item if available
+                      // Display expenseDate for each item if available
                       ...purchase.items
-                          .where((item) => item.choiceDate != null)
+                          .where((item) => item.expenseDate != null)
                           .map(
                             (item) => Padding(
                               padding: const EdgeInsets.only(left: 8.0, top: 2.0),
                               child: Text(
-                                '  • ${item.subCategory2 ?? item.subCategory1}: Date Choix ${DateFormat('dd/MM/yyyy').format(item.choiceDate!)}',
+                                '  • ${item.subCategory2 ?? item.subCategory1}: Date de Dépense ${DateFormat('dd/MM/yyyy').format(item.expenseDate!)}',
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.primary),
                                 overflow: TextOverflow.ellipsis,
                               ),

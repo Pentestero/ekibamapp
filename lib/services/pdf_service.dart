@@ -125,7 +125,7 @@ class PdfService {
       'Catégorie',
       'Sous-catégorie 1',
       'Sous-catégorie 2',
-      'Date Choix',
+      'Date de Dépense',
       'Qté',
       'PU',
       'Total'
@@ -179,7 +179,7 @@ class PdfService {
             pw.Padding(
               padding: const pw.EdgeInsets.all(4),
               child: pw.Text(
-                item.choiceDate != null ? DateFormat('dd/MM/yy').format(item.choiceDate!) : '',
+                item.expenseDate != null ? DateFormat('dd/MM/yy').format(item.expenseDate!) : '',
                 style: const pw.TextStyle(fontSize: 8),
               ),
             ),

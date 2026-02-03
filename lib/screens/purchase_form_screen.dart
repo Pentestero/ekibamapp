@@ -676,22 +676,39 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
     super.dispose();
   }
 
-  Future<void> _selectChoiceDate(BuildContext context) async {
+  Future<void> _selectExpenseDate(BuildContext context) async {
     final provider = context.read<PurchaseProvider>();
     final item = provider.itemsBuilder[widget.index];
-    final initialDate = item.choiceDate ?? DateTime.now();
+
+    final purchaseCreationDate = provider.purchaseBuilder.date;
+
+    // Last selectable date: cannot be in the future, and cannot be after the purchase creation date
+    final lastSelectableDate =
+        DateTime.now().isBefore(purchaseCreationDate) ? DateTime.now() : purchaseCreationDate;
+
+    // Ensure initialDate is not after lastSelectableDate
+    DateTime initialDate = item.expenseDate ?? DateTime.now();
+    if (initialDate.isAfter(lastSelectableDate)) {
+      initialDate = lastSelectableDate; // Clamp initialDate
+    }
+    // Also ensure initialDate is not before firstDate
+    if (initialDate.isBefore(DateTime(2020))) {
+        initialDate = DateTime(2020);
+    }
+
 
     final newDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
+      firstDate: DateTime(2020), // Can be adjusted as needed
+      lastDate: lastSelectableDate,
     );
 
     if (newDate != null) {
-      provider.updateItem(widget.index, choiceDate: newDate);
+      provider.updateItem(widget.index, expenseDate: newDate);
     }
   }
+
 
   void _showAddSupplierDialog() {
     showDialog(
@@ -704,7 +721,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
       },
     ).then((newSupplier) {
       if (!mounted) return;
-      if (newSupplier != null) { // Supplier is already typed as Supplier from dialog, no need to check is Supplier
+      if (newSupplier != null) {
         context
             .read<PurchaseProvider>()
             .updateItem(widget.index, supplierId: newSupplier.id);
@@ -722,7 +739,6 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
         );
       },
     ).then((_) {
-      // After adding a category, refresh the item card to update dropdowns
       if (!mounted) return;
       setState(() {});
     });
@@ -766,7 +782,29 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
             ),
             const Divider(),
             const SizedBox(height: 12),
-
+            ListTile( // Moved and modified ListTile for expense date
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: Theme.of(context).dividerColor),
+              ),
+              leading: Icon(Icons.calendar_today, color: Theme.of(context).colorScheme.primary),
+              title: Text(
+                item.expenseDate == null
+                    ? 'Ajouter une date de dépense' // Renamed label
+                    : 'Date de dépense: ${DateFormat('dd/MM/yyyy').format(item.expenseDate!)}', // Renamed label
+              ),
+              trailing: item.expenseDate != null
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      tooltip: 'Effacer la date',
+                      onPressed: () {
+                        provider.updateItem(widget.index, clearExpenseDate: true); // Updated to clearExpenseDate
+                      },
+                    )
+                  : null,
+              onTap: () => _selectExpenseDate(context), // Updated function call
+            ),
+            const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -996,28 +1034,6 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
               maxLines: 5, // Increased maxLines for better visibility
             ),
             const SizedBox(height: 12),
-            ListTile(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: Theme.of(context).dividerColor),
-              ),
-              leading: Icon(Icons.calendar_today, color: Theme.of(context).colorScheme.primary),
-              title: Text(
-                item.choiceDate == null
-                    ? 'Ajouter une date de choix'
-                    : 'Date de choix: ${DateFormat('dd/MM/yyyy').format(item.choiceDate!)}',
-              ),
-              trailing: item.choiceDate != null
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      tooltip: 'Effacer la date',
-                      onPressed: () {
-                        provider.updateItem(widget.index, clearChoiceDate: true);
-                      },
-                    )
-                  : null,
-              onTap: () => _selectChoiceDate(context),
-            ),
             const SizedBox(height: 16),
             Container(
               width: double.infinity,

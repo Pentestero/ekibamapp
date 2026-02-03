@@ -443,6 +443,7 @@ class PurchaseProvider with ChangeNotifier {
       quantity: 1.0,
       unitPrice: 0,
       supplierName: supplierName,
+      expenseDate: null, // Initializing expenseDate as null
     );
     _itemsBuilder.add(newItem);
     _errorMessage = '';
@@ -466,8 +467,8 @@ class PurchaseProvider with ChangeNotifier {
     double? quantity,
     String? unit,
     int? unitPrice,
-    DateTime? choiceDate,
-    bool clearChoiceDate = false,
+    DateTime? expenseDate, // Changed from choiceDate
+    bool clearExpenseDate = false, // Changed from clearChoiceDate
   }) {
     if (index < 0 || index >= _itemsBuilder.length) return;
     final oldItem = _itemsBuilder[index];
@@ -487,8 +488,8 @@ class PurchaseProvider with ChangeNotifier {
         ? subCategory2
         : (subCategory2 ?? oldItem.subCategory2);
 
-    // --- New Choice Date Logic ---
-    final DateTime? finalChoiceDate = clearChoiceDate ? null : (choiceDate ?? oldItem.choiceDate);
+    // --- New Expense Date Logic ---
+    final DateTime? finalExpenseDate = clearExpenseDate ? null : (expenseDate ?? oldItem.expenseDate); // Changed from finalChoiceDate and choiceDate
 
     _itemsBuilder[index] = PurchaseItem(
       id: oldItem.id,
@@ -503,8 +504,8 @@ class PurchaseProvider with ChangeNotifier {
       unitPrice: unitPrice ?? oldItem.unitPrice,
       paymentFee: oldItem.paymentFee,
       supplierName: itemSupplierName,
-      comment: oldItem.comment, // Bug fix: Preserve existing comment
-      choiceDate: finalChoiceDate, // New feature: Update choice date
+      comment: oldItem.comment, // Preserve existing comment
+      expenseDate: finalExpenseDate, // Changed from choiceDate
     );
     notifyListeners();
   }

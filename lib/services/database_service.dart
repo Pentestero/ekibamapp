@@ -69,7 +69,7 @@ class DatabaseService {
           'unit_price': item.unitPrice,
           'payment_fee': item.paymentFee,
           'comment': item.comment,
-          'choice_date': item.choiceDate?.toIso8601String(),
+          'expense_date': item.expenseDate?.toIso8601String(),
         }).toList(),
       };
 
@@ -125,7 +125,7 @@ class DatabaseService {
           'unit_price': item.unitPrice,
           'payment_fee': item.paymentFee,
           'comment': item.comment,
-          'choice_date': item.choiceDate?.toIso8601String(),
+          'expense_date': item.expenseDate?.toIso8601String(),
         }).toList();
 
         await _supabase.from('purchase_items').insert(itemsToInsert);
