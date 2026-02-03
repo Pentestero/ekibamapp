@@ -14,6 +14,7 @@ class PurchaseItem {
   final int unitPrice;
   final int paymentFee;
   final String? comment;
+  final DateTime? choiceDate;
 
   final String? supplierName;
 
@@ -31,6 +32,7 @@ class PurchaseItem {
     this.paymentFee = 0,
     this.supplierName,
     this.comment,
+    this.choiceDate,
   }) : _localId = localId ?? DateTime.now().millisecondsSinceEpoch;
 
   int get total => ((quantity * unitPrice) + paymentFee).round();
@@ -41,16 +43,17 @@ class PurchaseItem {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'purchaseId': purchaseId,
+      'purchase_id': purchaseId,
       'category': category,
-      'subCategory1': subCategory1,
-      'subCategory2': subCategory2,
-      'supplierId': supplierId,
+      'sub_category_1': subCategory1,
+      'sub_category_2': subCategory2,
+      'supplier_id': supplierId,
       'quantity': quantity,
       'unit': unit,
-      'unitPrice': unitPrice,
-      'paymentFee': paymentFee,
+      'unit_price': unitPrice,
+      'payment_fee': paymentFee,
       'comment': comment,
+      'choice_date': choiceDate?.toIso8601String(),
     };
   }
 
@@ -71,6 +74,9 @@ class PurchaseItem {
       paymentFee: (map['payment_fee'] as num?)?.toInt() ?? 0,
       comment: map['comment'] as String?,
       supplierName: supplierName,
+      choiceDate: map['choice_date'] == null
+          ? null
+          : DateTime.parse(map['choice_date'] as String),
     );
   }
 
@@ -88,6 +94,7 @@ class PurchaseItem {
     int? paymentFee,
     String? supplierName,
     String? comment,
+    DateTime? choiceDate,
   }) {
     return PurchaseItem(
       id: id ?? this.id,
@@ -103,6 +110,7 @@ class PurchaseItem {
       paymentFee: paymentFee ?? this.paymentFee,
       supplierName: supplierName ?? this.supplierName,
       comment: comment ?? this.comment,
+      choiceDate: choiceDate ?? this.choiceDate,
     );
   }
 

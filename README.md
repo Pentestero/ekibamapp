@@ -18,6 +18,9 @@ L'application offre une suite complète d'outils pour une gestion transparente :
 - **Authentification Sécurisée :** Connexion, inscription et réinitialisation de mot de passe pour sécuriser l'accès aux données.
 - **Guide d'utilisation intégré :** Une section d'aide est disponible directement dans l'application pour guider les utilisateurs.
 - **Tableau de Bord Administrateur :** Un dashboard sécurisé, visible uniquement par les admins, permettant de voir, rechercher, et exporter tous les achats de tous les utilisateurs.
+- **Gestion des Dates de Choix par Article :** Possibilité d'associer une date spécifique à chaque article d'une demande d'achat (DA), visible dans les détails de l'achat, les PDF générés et les exports Excel.
+- **Bibliothèque d'Articles Fréquents :** Sauvegardez, gérez et réutilisez des articles fréquemment achetés pour une saisie rapide et efficace dans les formulaires d'achat. Accessible depuis le Tableau de Bord.
+- **Rapports Avancés :** Accédez à un nouvel écran de rapports avec des graphiques interactifs des dépenses par catégorie, par fournisseur et par type de projet, incluant des options de filtrage par période.
 
 ## 📖 Guide d'utilisation
 
@@ -33,28 +36,11 @@ Pour une gestion claire des informations de paiement et du budget, l'application
     *   Ce champ est une liste déroulante où vous pouvez sélectionner une personne ou un service responsable du budget si cela est différent du "Demandeur" (l'utilisateur connecté).
     *   La valeur sélectionnée ici n'apparaît **que dans le PDF de la "Demande d'Achat"** et uniquement si elle est différente du "Demandeur". Elle n'est **jamais** utilisée dans les rapports Excel.
 
-## 💡 Prochaine Étape : Intégration de l'IA (Scan de Facture)
+## 💡 Intégration de l'IA (Scan de Facture)
 
-Pour la prochaine phase de développement, nous allons intégrer une fonctionnalité révolutionnaire : le **Remplissage Automatique des Achats par Scan de Facture grâce à l'IA**.
+La fonctionnalité de **Remplissage Automatique des Achats par Scan de Facture grâce à l'IA** est disponible mais nécessite un abonnement mensuel pour être utilisée.
 
-**Objectif :** L'utilisateur pourra prendre une photo ou uploader une facture (image/PDF), et l'application utilisera l'IA pour en extraire automatiquement les informations clés (fournisseur, date, articles, prix, quantités) afin de pré-remplir le formulaire d'achat.
-
-**Pour implémenter cette fonctionnalité, voici les étapes :**
-
-1.  **Configuration de l'API Gemini (ou autre service de vision par ordinateur) :**
-    *   Vous devrez obtenir une clé d'API pour un service d'IA capable d'analyser des images et d'extraire des informations (par exemple, l'API Gemini de Google Cloud, Azure AI Vision, etc.).
-    *   **Action pour vous :** Préparez une clé d'API valide pour le service d'IA de votre choix.
-    *   **Action pour moi :** J'intégrerai cette clé de manière sécurisée via des variables d'environnement Flutter (nécessite l'utilisation du package `flutter_dotenv` ou similaire).
-
-2.  **Mise à Jour des Dépendances Flutter :**
-    *   J'ajouterai le package `image_picker` pour la sélection d'images et potentiellement un package pour l'appel d'API HTTP (`dio` ou `http`) si non déjà présent, ainsi qu'un package pour les variables d'environnement (`flutter_dotenv`).
-
-3.  **Développement de l'Interface Utilisateur :**
-    *   J'ajouterai un bouton "Importer une Facture par IA" dans le `PurchaseFormScreen`.
-
-4.  **Logique d'Intégration de l'IA :**
-    *   Le code Flutter enverra l'image de la facture au service d'IA avec une requête spécifique pour extraire les données.
-    *   Le formulaire d'achat sera automatiquement pré-rempli avec les informations extraites.
+**Objectif de la fonctionnalité :** L'utilisateur pourra prendre une photo ou uploader une facture (image/PDF), et l'application utilisera l'IA pour en extraire automatiquement les informations clés (fournisseur, date, articles, prix, quantités) afin de pré-remplir le formulaire d'achat.
 
 ---
 
@@ -105,6 +91,21 @@ Suivez ces étapes pour lancer le projet sur votre machine locale.
     ```
 
 ## Journal des modifications
+
+### 3 Février 2026
+
+Cette version introduit de nouvelles fonctionnalités majeures et apporte plusieurs corrections :
+
+-   **Nouvelles Fonctionnalités :**
+    *   **Date de Choix par Article :** Ajout de la possibilité d'associer une date spécifique à chaque article d'une DA. Cette date est désormais visible dans les détails de l'achat, incluse dans les PDF générés pour les Demandes d'Achat, et présente dans les exports Excel.
+    *   **Bibliothèque d'Articles Fréquents :** Implémentation complète d'une bibliothèque pour sauvegarder, gérer (ajouter, modifier, supprimer) et réutiliser des articles fréquemment achetés. Un nouvel écran de gestion est accessible depuis le Tableau de Bord, et la fonction est intégrée au formulaire d'achat pour une saisie rapide.
+    *   **Rapports Avancés :** Introduction d'un nouvel écran de rapports accessible depuis le Tableau de Bord. Cet écran propose des graphiques interactifs pour visualiser les dépenses par catégorie, par fournisseur et par type de projet, avec des options de filtrage par période.
+
+-   **Mises à Jour/Corrections :**
+    *   **Analyse IA (Scan Facture) :** La fonctionnalité d'analyse de facture par IA est désormais signalée comme nécessitant un abonnement mensuel lorsqu'un utilisateur tente de l'utiliser.
+    *   **Affichage de la Date de Choix :** La date de choix des articles est maintenant affichée de manière détaillée dans les cartes d'achat de l'écran d'historique des DA.
+    *   **Corrections de Compilation :** Résolution des erreurs de compilation liées au formatage des chaînes de caractères multilignes (`subtitle` des `ListTile`) dans les widgets de la bibliothèque d'articles.
+    *   **Optimisation de la Mise à Jour des Articles :** Correction d'un bug dans le `PurchaseProvider` où le champ "commentaire" d'un article n'était pas correctement préservé lors des mises à jour.
 
 ### Version 1.4.0 - Janvier 2026
 

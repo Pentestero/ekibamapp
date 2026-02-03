@@ -9,6 +9,8 @@ import 'package:provisions/screens/help_screen.dart';
 import 'package:provisions/services/auth_service.dart';
 import 'package:provisions/theme.dart';
 import 'package:provisions/widgets/dashboard_skeleton.dart'; // ADD THIS IMPORT
+import 'package:provisions/screens/library_management_screen.dart'; // NEW IMPORT
+import 'package:provisions/screens/reports_screen.dart'; // NEW IMPORT
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback navigateToHistory;
@@ -98,6 +100,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                 controller.setMode(controller.mode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light);
               } else if (value == 'selectPalette') {
                 _showPaletteSelectionDialog(context); // Call the new dialog
+              } else if (value == 'library') { // NEW: Navigate to Library
+                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const LibraryManagementScreen()));
+              } else if (value == 'reports') { // NEW: Navigate to Reports
+                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ReportsScreen()));
               }
             },
             itemBuilder: (context) => [
@@ -128,6 +134,26 @@ class _DashboardScreenState extends State<DashboardScreen>
                     const Icon(Icons.palette),
                     const SizedBox(width: 8),
                     const Text('Choisir Palette'),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>( // NEW: Library option
+                value: 'library',
+                child: Row(
+                  children: [
+                    const Icon(Icons.library_books),
+                    const SizedBox(width: 8),
+                    const Text('Ma Bibliothèque'),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>( // NEW: Reports option
+                value: 'reports',
+                child: Row(
+                  children: [
+                    const Icon(Icons.bar_chart),
+                    const SizedBox(width: 8),
+                    const Text('Rapports'),
                   ],
                 ),
               ),

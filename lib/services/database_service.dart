@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provisions/models/purchase.dart';
 import 'package:provisions/models/purchase_item.dart';
+import 'package:provisions/models/library_item.dart';
 import 'package:provisions/models/supplier.dart';
 
 class DatabaseService {
@@ -68,6 +69,7 @@ class DatabaseService {
           'unit_price': item.unitPrice,
           'payment_fee': item.paymentFee,
           'comment': item.comment,
+          'choice_date': item.choiceDate?.toIso8601String(),
         }).toList(),
       };
 
@@ -123,6 +125,7 @@ class DatabaseService {
           'unit_price': item.unitPrice,
           'payment_fee': item.paymentFee,
           'comment': item.comment,
+          'choice_date': item.choiceDate?.toIso8601String(),
         }).toList();
 
         await _supabase.from('purchase_items').insert(itemsToInsert);
@@ -211,7 +214,7 @@ class DatabaseService {
   Future<List<Map<String, dynamic>>> getCategories() async {
     try {
       final data = await _supabase.from('categories').select();
-      return data.map((item) => item as Map<String, dynamic>).toList();
+      return data.map((item) => item).toList();
     } catch (e) {
       debugPrint("Erreur lors de la récupération des catégories: $e");
       return [];
@@ -233,12 +236,69 @@ class DatabaseService {
           })
           .select()
           .single();
-      return inserted as Map<String, dynamic>;
+      return inserted;
     } catch (e) {
       debugPrint("Erreur lors de l'insertion de la catégorie: $e");
       rethrow;
     }
   }
+
+  // --- Library Items ---
+
+  Future<List<LibraryItem>> getLibraryItems() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return [];
+    try {
+      final data = await _supabase
+          .from('item_library')
+          .select()
+          .eq('user_id', userId)
+          .order('template_name', ascending: true);
+      return data.map((item) => LibraryItem.fromMap(item)).toList();
+    } catch (e) {
+      debugPrint("Erreur lors de la récupération de la bibliothèque d'articles: $e");
+      rethrow;
+    }
+  }
+
+  Future<LibraryItem> addLibraryItem(LibraryItem item) async {
+    try {
+      final data = await _supabase
+          .from('item_library')
+          .insert(item.toMap())
+          .select()
+          .single();
+      return LibraryItem.fromMap(data);
+    } catch (e) {
+      debugPrint("Erreur lors de l'ajout à la bibliothèque d'articles: $e");
+      rethrow;
+    }
+  }
+
+  Future<LibraryItem> updateLibraryItem(LibraryItem item) async {
+    try {
+      final data = await _supabase
+          .from('item_library')
+          .update(item.toMap())
+          .eq('id', item.id!)
+          .select()
+          .single();
+      return LibraryItem.fromMap(data);
+    } catch (e) {
+      debugPrint("Erreur lors de la mise à jour de la bibliothèque d'articles: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> deleteLibraryItem(int id) async {
+    try {
+      await _supabase.from('item_library').delete().eq('id', id);
+    } catch (e) {
+      debugPrint("Erreur lors de la suppression de la bibliothèque d'articles: $e");
+      rethrow;
+    }
+  }
+
 
   /// Vérifie si l'utilisateur actuel est un administrateur en consultant la table app_admins.
   Future<bool> isCurrentUserAdmin() async {

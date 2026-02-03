@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:provisions/models/library_item.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provisions/models/purchase.dart';
 import 'package:provisions/models/purchase_item.dart';
@@ -19,6 +19,7 @@ class PurchaseProvider with ChangeNotifier {
   List<Supplier> _suppliers = [];
   List<String> _requesters = [];
   List<String> _paymentMethods = [];
+  List<LibraryItem> _libraryItems = [];
 
   Map<String, Map<String, List<String>>> _categories = {};
 
@@ -41,6 +42,7 @@ class PurchaseProvider with ChangeNotifier {
   List<String> get requesters => _requesters;
   List<String> get projectTypes => _projectTypes;
   List<String> get paymentMethods => _paymentMethods;
+  List<LibraryItem> get libraryItems => _libraryItems;
   Map<String, Map<String, List<String>>> get categories => _categories;
   bool get isLoading => _isLoading;
   String get errorMessage => _errorMessage;
@@ -53,6 +55,8 @@ class PurchaseProvider with ChangeNotifier {
   Map<String, int> get projectTypeTotals => _calculateAnalytics(
       (purchase) => purchase.projectType, (purchase) => purchase.grandTotal,
       isPurchaseLevel: true);
+  Map<String, int> get categoryTotals => _calculateAnalytics(
+      (item) => item.category, (item) => item.total);
   int get totalSpent =>
       _purchases.fold(0, (sum, p) => sum + p.grandTotal);
   int get totalPurchases => _purchases.length;
@@ -81,6 +85,7 @@ class PurchaseProvider with ChangeNotifier {
       _loadRequesters(),
       _loadPaymentMethods(),
       _loadCategories(),
+      _loadLibraryItems(),
     ]);
     _resetPurchaseBuilder();
 
@@ -231,6 +236,131 @@ class PurchaseProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void prefillFormFromAI(Map<String, dynamic> aiData) {
+    // 1. Parse Date
+    try {
+      final dateString = aiData['purchaseDate'] as String?;
+      if (dateString != null && dateString.isNotEmpty) {
+        _purchaseBuilder = _purchaseBuilder.copyWith(date: DateTime.parse(dateString));
+      }
+    } catch (e) {
+      debugPrint('Could not parse date from AI: $e');
+    }
+
+    // 2. Match global supplier for all items, as it's often unique on an invoice
+    final supplierName = aiData['supplierName'] as String? ?? '';
+    Supplier? matchedSupplier;
+    if (supplierName.isNotEmpty) {
+      matchedSupplier = _findBestSupplierMatch(supplierName);
+    }
+
+    // 3. Clear existing items and process new ones
+    _itemsBuilder = [];
+    final aiItems = aiData['items'] as List<dynamic>? ?? [];
+
+    for (var aiItem in aiItems) {
+      final description = aiItem['description'] as String? ?? '';
+      final quantity = (aiItem['quantity'] as num?)?.toDouble() ?? 1.0;
+      final unitPrice = (aiItem['unitPrice'] as num?)?.toInt() ?? 0;
+
+      // 4. Match Category for this item
+      final categoryMatch = _findBestCategoryMatch(description);
+
+      final newItem = PurchaseItem(
+        purchaseId: _editingPurchaseId ?? 0,
+        category: categoryMatch['category'] ?? (_categories.isNotEmpty ? _categories.keys.first : ''),
+        subCategory1: categoryMatch['subCategory1'] ?? '',
+        subCategory2: categoryMatch['subCategory2'],
+        supplierId: matchedSupplier?.id == -1 ? null : matchedSupplier?.id,
+        supplierName: matchedSupplier?.id == -1 ? null : matchedSupplier?.name,
+        quantity: quantity,
+        unitPrice: unitPrice,
+        comment: 'AI: $description', // Put raw description in comment
+      );
+      _itemsBuilder.add(newItem);
+    }
+    
+    notifyListeners();
+  }
+
+  Supplier? _findBestSupplierMatch(String name) {
+    if (_suppliers.isEmpty || name.isEmpty) return null;
+
+    final processedName = name.toLowerCase().trim();
+
+    // Try exact match first
+    for (final supplier in _suppliers) {
+      if (supplier.name.toLowerCase().trim() == processedName) {
+        return supplier;
+      }
+    }
+    
+    // Try containment match
+    for (final supplier in _suppliers) {
+      if (supplier.name.toLowerCase().trim().contains(processedName) || processedName.contains(supplier.name.toLowerCase().trim())) {
+        return supplier;
+      }
+    }
+
+    return null;
+  }
+
+  Map<String, String?> _findBestCategoryMatch(String description) {
+    if (_categories.isEmpty || description.isEmpty) return {};
+
+    final processedDesc = description.toLowerCase().trim();
+    
+    String? bestCat;
+    String? bestSubCat1;
+    String? bestSubCat2;
+    double bestScore = 0.0;
+
+    _categories.forEach((cat, sub1Map) {
+      sub1Map.forEach((sub1, sub2List) {
+        if (sub2List.isNotEmpty) {
+          for (final sub2 in sub2List) {
+            // Check against sub2 first
+            final score = _calculateSimpleSimilarity(processedDesc, sub2.toLowerCase());
+            if (score > bestScore) {
+              bestScore = score;
+              bestCat = cat;
+              bestSubCat1 = sub1;
+              bestSubCat2 = sub2;
+            }
+          }
+        } else {
+          // Check against sub1
+          final score = _calculateSimpleSimilarity(processedDesc, sub1.toLowerCase());
+          if (score > bestScore) {
+            bestScore = score;
+            bestCat = cat;
+            bestSubCat1 = sub1;
+            bestSubCat2 = null;
+          }
+        }
+      });
+    });
+
+    if (bestScore > 0.5) { // Similarity threshold
+      return {
+        'category': bestCat,
+        'subCategory1': bestSubCat1,
+        'subCategory2': bestSubCat2,
+      };
+    }
+
+    return {};
+  }
+
+  double _calculateSimpleSimilarity(String a, String b) {
+    final aWords = a.split(RegExp(r'\s+')).toSet();
+    final bWords = b.split(RegExp(r'\s+')).toSet();
+    final intersection = aWords.intersection(bWords).length;
+    final union = aWords.union(bWords).length;
+    return union == 0 ? 0 : intersection / union;
+  }
+
+
   void _resetPurchaseBuilder() {
     if (_user == null) return;
     String initialPaymentMethod =
@@ -336,6 +466,8 @@ class PurchaseProvider with ChangeNotifier {
     double? quantity,
     String? unit,
     int? unitPrice,
+    DateTime? choiceDate,
+    bool clearChoiceDate = false,
   }) {
     if (index < 0 || index >= _itemsBuilder.length) return;
     final oldItem = _itemsBuilder[index];
@@ -350,13 +482,13 @@ class PurchaseProvider with ChangeNotifier {
     final String? itemSupplierName = (selectedSupplier.id == -1) ? null : selectedSupplier.name;
 
     // --- New Category Logic ---
-    // This correctly handles updates. If a category or subcategory1 is changed,
-    // we take the new subCategory2 value as authoritative (even if it's null).
-    // Otherwise (e.g., updating quantity), we preserve the old subCategory2.
     final bool isCategoryUpdate = category != null || subCategory1 != null;
     final String? finalSubCategory2 = isCategoryUpdate
         ? subCategory2
         : (subCategory2 ?? oldItem.subCategory2);
+
+    // --- New Choice Date Logic ---
+    final DateTime? finalChoiceDate = clearChoiceDate ? null : (choiceDate ?? oldItem.choiceDate);
 
     _itemsBuilder[index] = PurchaseItem(
       id: oldItem.id,
@@ -371,7 +503,8 @@ class PurchaseProvider with ChangeNotifier {
       unitPrice: unitPrice ?? oldItem.unitPrice,
       paymentFee: oldItem.paymentFee,
       supplierName: itemSupplierName,
-      comment: oldItem.comment,
+      comment: oldItem.comment, // Bug fix: Preserve existing comment
+      choiceDate: finalChoiceDate, // New feature: Update choice date
     );
     notifyListeners();
   }
@@ -437,6 +570,64 @@ class PurchaseProvider with ChangeNotifier {
   Future<void> _loadPaymentMethods() async {
     _paymentMethods = await _dbService.getPaymentMethods();
   }
+
+    Future<void> _loadLibraryItems() async {
+    if (_user == null) return;
+    try {
+      _libraryItems = await _dbService.getLibraryItems();
+    } catch (e) {
+      _errorMessage = "Erreur chargement de la bibliothèque: $e";
+    }
+  }
+
+  Future<void> addLibraryItem(LibraryItem item) async {
+    try {
+      await _dbService.addLibraryItem(item);
+      await _loadLibraryItems(); // Refresh list
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = "Erreur lors de l'ajout à la bibliothèque: $e";
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateLibraryItem(LibraryItem item) async {
+    try {
+      await _dbService.updateLibraryItem(item);
+      await _loadLibraryItems(); // Refresh list
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = "Erreur lors de la mise à jour de la bibliothèque: $e";
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteLibraryItem(int id) async {
+    try {
+      await _dbService.deleteLibraryItem(id);
+      _libraryItems.removeWhere((item) => item.id == id); // Optimistic update
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = "Erreur lors de la suppression de la bibliothèque: $e";
+      await _loadLibraryItems(); // Re-fetch on error
+      notifyListeners();
+    }
+  }
+
+  void addItemFromLibrary(LibraryItem libItem) {
+    final newItem = PurchaseItem(
+      purchaseId: _editingPurchaseId ?? 0,
+      category: libItem.category,
+      subCategory1: libItem.subCategory1,
+      subCategory2: libItem.subCategory2,
+      unitPrice: libItem.unitPrice ?? 0,
+      unit: libItem.unit,
+      quantity: 1.0, // Default quantity
+    );
+    _itemsBuilder.add(newItem);
+    notifyListeners();
+  }
+
 
   Future<String> addNewPaymentMethod({required String name}) async {
     if (_user == null) throw Exception('User not authenticated');

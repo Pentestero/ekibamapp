@@ -269,7 +269,7 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Wrap(
@@ -371,6 +371,19 @@ class PurchaseCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
+                      // Display choiceDate for each item if available
+                      ...purchase.items
+                          .where((item) => item.choiceDate != null)
+                          .map(
+                            (item) => Padding(
+                              padding: const EdgeInsets.only(left: 8.0, top: 2.0),
+                              child: Text(
+                                '  • ${item.subCategory2 ?? item.subCategory1}: Date Choix ${DateFormat('dd/MM/yyyy').format(item.choiceDate!)}',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.primary),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
                       const SizedBox(height: 8),
                     ],
                     Row(

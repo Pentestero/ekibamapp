@@ -6,7 +6,7 @@ import 'package:printing/printing.dart' show PdfGoogleFonts;
 import 'package:file_saver/file_saver.dart';
 import 'package:intl/intl.dart';
 import 'package:provisions/models/purchase.dart';
-import 'package:provisions/models/purchase_item.dart'; // Import PurchaseItem
+// Import PurchaseItem
 
 class PdfService {
   static Future<void> generateInvoicePdf(Purchase purchase) async {
@@ -125,6 +125,7 @@ class PdfService {
       'Catégorie',
       'Sous-catégorie 1',
       'Sous-catégorie 2',
+      'Date Choix',
       'Qté',
       'PU',
       'Total'
@@ -133,9 +134,10 @@ class PdfService {
       0: const pw.FlexColumnWidth(2), // Category
       1: const pw.FlexColumnWidth(2.5), // SubCategory1
       2: const pw.FlexColumnWidth(3), // SubCategory2
-      3: const pw.FlexColumnWidth(1), // Quantity
-      4: const pw.FlexColumnWidth(1.5), // Unit Price
-      5: const pw.FlexColumnWidth(1.5), // Total
+      3: const pw.FlexColumnWidth(1.5), // Choice Date
+      4: const pw.FlexColumnWidth(1), // Quantity
+      5: const pw.FlexColumnWidth(1.5), // Unit Price
+      6: const pw.FlexColumnWidth(1.5), // Total
     };
 
     final List<pw.TableRow> tableRows = [];
@@ -174,6 +176,13 @@ class PdfService {
             pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(item.category, style: const pw.TextStyle(fontSize: 8))),
             pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(item.subCategory1, style: const pw.TextStyle(fontSize: 8))),
             pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(item.subCategory2 ?? '', style: const pw.TextStyle(fontSize: 8))),
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(4),
+              child: pw.Text(
+                item.choiceDate != null ? DateFormat('dd/MM/yy').format(item.choiceDate!) : '',
+                style: const pw.TextStyle(fontSize: 8),
+              ),
+            ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(4),
               child: pw.Align(

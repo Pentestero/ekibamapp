@@ -1,6 +1,9 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:provisions/services/ai_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:provisions/models/library_item.dart'; // NEW IMPORT
 import 'package:provisions/models/purchase.dart';
 import 'package:provisions/providers/purchase_provider.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +11,7 @@ import 'package:provisions/widgets/add_requester_dialog.dart'; // Import new dia
 import 'package:provisions/widgets/add_payment_method_dialog.dart'; // Import new dialog
 import 'package:provisions/widgets/add_supplier_dialog.dart'; // Required for _PurchaseItemCard's dialog
 import 'package:provisions/widgets/add_category_dialog.dart'; // Required for _PurchaseItemCard's dialog
+import 'package:provisions/widgets/library_item_selection_dialog.dart'; // NEW IMPORT
 
 String? _wordCountValidator(String? value) {
   if (value == null || value.isEmpty) {
@@ -32,6 +36,67 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _commentsController = TextEditingController();
   final _clientNameController = TextEditingController();
+  bool _isAiProcessing = false;
+
+  Future<void> _scanInvoiceWithAI() async {
+    // Subscription check simulation
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Cette fonctionnalité nécessite un abonnement mensuel pour l'utiliser."),
+          backgroundColor: Colors.blueAccent, // Use a distinct color for this message
+        ),
+      );
+    }
+    return; // Prevent further execution
+
+    // Original code follows (commented out or removed for this simulation)
+    // setState(() {
+    //   _isAiProcessing = true;
+    // });
+
+    // try {
+    //   final result = await FilePicker.platform.pickFiles(
+    //     type: FileType.custom,
+    //     allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+    //   );
+
+    //   if (result != null && result.files.single.path != null) {
+    //     final file = result.files.single;
+    //     final extractedData = await AIService.analyseInvoice(file);
+
+    //     // Call provider to pre-fill the form
+    //     context.read<PurchaseProvider>().prefillFormFromAI(extractedData);
+
+    //     if (mounted) {
+    //       ScaffoldMessenger.of(context).showSnackBar(
+    //         const SnackBar(
+    //           content: Text('Données extraites avec succès ! Le formulaire a été pré-rempli.'),
+    //           backgroundColor: Colors.green,
+    //         ),
+    //       );
+    //     }
+
+    //   }
+    // } catch (e) {
+    //   if (mounted) {
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       SnackBar(
+    //         content: Text("Erreur lors de l'analyse : $e"),
+    //         backgroundColor: Colors.red,
+    //       ),
+    //     );
+    //   }
+    // } finally {
+    //   if (mounted) {
+    //     setState(() {
+    //       _isAiProcessing = false;
+    //     });
+    //   }
+    // }
+  }
+
+
 
   @override
   void initState() {
@@ -102,40 +167,73 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           ),
         ],
       ),
-      body: Consumer<PurchaseProvider>(
-        builder: (context, provider, child) {
-          // Update controllers if provider's builder state changes
-          if (_commentsController.text != provider.purchaseBuilder.comments) {
-            _commentsController.text = provider.purchaseBuilder.comments;
-          }
-          if (_clientNameController.text != (provider.purchaseBuilder.clientName ?? '')) {
-            _clientNameController.text = provider.purchaseBuilder.clientName ?? '';
-          }
+      body: Stack(
+        children: [
+          Consumer<PurchaseProvider>(
+            builder: (context, provider, child) {
+              // Update controllers if provider's builder state changes
+              if (_commentsController.text != provider.purchaseBuilder.comments) {
+                _commentsController.text = provider.purchaseBuilder.comments;
+              }
+              if (_clientNameController.text != (provider.purchaseBuilder.clientName ?? '')) {
+                _clientNameController.text = provider.purchaseBuilder.clientName ?? '';
+              }
 
-          if (provider.isLoading && provider.requesters.isEmpty && !provider.isEditing) {
-            return const Center(child: CircularProgressIndicator()); // Keep default loading for now
-          }
+              if (provider.isLoading && provider.requesters.isEmpty && !provider.isEditing) {
+                return const Center(child: CircularProgressIndicator()); // Keep default loading for now
+              }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeaderCard(context, provider),
-                  const SizedBox(height: 24),
-                  _buildItemsSection(context, provider),
-                  const SizedBox(height: 24),
-                  _buildTotalsCard(context, provider),
-                  const SizedBox(height: 32),
-                  _buildSubmitButton(context, provider),
-                  const SizedBox(height: 16),
-                ],
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: ElevatedButton.icon(
+                          onPressed: _isAiProcessing ? null : _scanInvoiceWithAI,
+                          icon: const Icon(Icons.document_scanner_outlined),
+                          label: const Text('Analyser un document (IA)'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _buildHeaderCard(context, provider),
+                      const SizedBox(height: 24),
+                      _buildItemsSection(context, provider),
+                      const SizedBox(height: 24),
+                      _buildTotalsCard(context, provider),
+                      const SizedBox(height: 32),
+                      _buildSubmitButton(context, provider),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          if (_isAiProcessing)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Analyse du document en cours...',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ],
+                ),
               ),
             ),
-          );
-        },
+        ],
       ),
     );
   }
@@ -187,7 +285,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: provider.purchaseBuilder.miseADBudget,
+                    initialValue: provider.purchaseBuilder.miseADBudget,
                     decoration: InputDecoration(
                         labelText: 'Destinataire Budget (si different)',
                         prefixIcon: const Icon(Icons.account_balance_wallet),
@@ -199,7 +297,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                       ),
                       ...provider.requesters
                           .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                          .toList(),
+                          ,
                     ],
                     onChanged: (value) {
                       provider.updatePurchaseHeader(miseADBudget: value);
@@ -217,7 +315,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: provider.purchaseBuilder.projectType,
+              initialValue: provider.purchaseBuilder.projectType,
               decoration: InputDecoration(
                   labelText: 'Type de Projet', prefixIcon: const Icon(Icons.work), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
               items: provider.projectTypes
@@ -257,7 +355,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: provider.paymentMethods
+                    initialValue: provider.paymentMethods
                             .contains(provider.purchaseBuilder.paymentMethod)
                         ? provider.purchaseBuilder.paymentMethod
                         : null,
@@ -321,7 +419,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 32.0),
                   child: Text(
-                    'Appuyez sur "Ajouter un article" pour commencer.',
+                    'Appuyez sur "Ajouter un article" ou "Depuis la Biblio" pour commencer.',
                     style: Theme.of(context).textTheme.bodyLarge,
                     textAlign: TextAlign.center,
                   ),
@@ -337,24 +435,53 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               },
             ),
             const SizedBox(height: 16),
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  final error = provider.addNewItem();
-                  if (error != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(error), backgroundColor: Colors.orange),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Ajouter un article'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.secondary,
-                  foregroundColor: Theme.of(context).colorScheme.onSecondary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      final error = provider.addNewItem();
+                      if (error != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(error), backgroundColor: Colors.orange),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Ajouter un article'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.secondary,
+                      foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final selectedItem = await showDialog<LibraryItem>(
+                        context: context,
+                        builder: (ctx) => ChangeNotifierProvider.value(
+                          value: provider,
+                          child: const LibraryItemSelectionDialog(),
+                        ),
+                      );
+                      if (selectedItem != null) {
+                        provider.addItemFromLibrary(selectedItem);
+                      }
+                    },
+                    icon: const Icon(Icons.collections_bookmark_outlined),
+                    label: const Text('Depuis la Biblio'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.tertiary,
+                      foregroundColor: Theme.of(context).colorScheme.onTertiary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -549,6 +676,23 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
     super.dispose();
   }
 
+  Future<void> _selectChoiceDate(BuildContext context) async {
+    final provider = context.read<PurchaseProvider>();
+    final item = provider.itemsBuilder[widget.index];
+    final initialDate = item.choiceDate ?? DateTime.now();
+
+    final newDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+
+    if (newDate != null) {
+      provider.updateItem(widget.index, choiceDate: newDate);
+    }
+  }
+
   void _showAddSupplierDialog() {
     showDialog(
       context: context,
@@ -628,7 +772,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: item.category,
+                    initialValue: item.category,
                     decoration: InputDecoration(labelText: 'Catégorie', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                     items: categories
                         .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -667,7 +811,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
 
             // Category 2
             DropdownButtonFormField<String>(
-              value: subCategories1.isEmpty
+              initialValue: subCategories1.isEmpty
                   ? null
                   : (subCategories1.contains(item.subCategory1)
                       ? item.subCategory1
@@ -693,7 +837,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
             // Category 3
             if (subCategories2.isNotEmpty) ...[
               DropdownButtonFormField<String>(
-                value: subCategories2.isEmpty
+                initialValue: subCategories2.isEmpty
                     ? null
                     : (subCategories2.contains(item.subCategory2)
                         ? item.subCategory2
@@ -718,7 +862,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<int>(
-                    value: item.supplierId ?? -1, // Use -1 for Aucun if supplierId is null
+                    initialValue: item.supplierId ?? -1, // Use -1 for Aucun if supplierId is null
                     decoration: InputDecoration(labelText: 'Fournisseur', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                     items: provider.suppliers
                         .map((s) =>
@@ -851,12 +995,35 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
               validator: _wordCountValidator, // Apply the word count validator
               maxLines: 5, // Increased maxLines for better visibility
             ),
+            const SizedBox(height: 12),
+            ListTile(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: Theme.of(context).dividerColor),
+              ),
+              leading: Icon(Icons.calendar_today, color: Theme.of(context).colorScheme.primary),
+              title: Text(
+                item.choiceDate == null
+                    ? 'Ajouter une date de choix'
+                    : 'Date de choix: ${DateFormat('dd/MM/yyyy').format(item.choiceDate!)}',
+              ),
+              trailing: item.choiceDate != null
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      tooltip: 'Effacer la date',
+                      onPressed: () {
+                        provider.updateItem(widget.index, clearChoiceDate: true);
+                      },
+                    )
+                  : null,
+              onTap: () => _selectChoiceDate(context),
+            ),
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
