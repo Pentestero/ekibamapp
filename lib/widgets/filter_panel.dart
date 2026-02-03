@@ -146,7 +146,7 @@ class _FilterPanelState extends State<FilterPanel> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<int?>(
-                  value: _currentFilters.year,
+                  initialValue: _currentFilters.year,
                   decoration: InputDecoration(labelText: 'Année', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                   items: [
                     const DropdownMenuItem<int?>(value: null, child: Text('Toutes')),
@@ -158,7 +158,7 @@ class _FilterPanelState extends State<FilterPanel> {
               const SizedBox(width: 16),
               Expanded(
                 child: DropdownButtonFormField<int?>(
-                  value: _currentFilters.month,
+                  initialValue: _currentFilters.month,
                   decoration: InputDecoration(labelText: 'Mois', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                   items: [
                     const DropdownMenuItem<int?>(value: null, child: Text('Tous')),

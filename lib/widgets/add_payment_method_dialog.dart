@@ -4,6 +4,8 @@ import 'package:provisions/providers/purchase_provider.dart';
 
 // Dialog for adding a new Payment Method
 class AddPaymentMethodDialog extends StatefulWidget {
+  const AddPaymentMethodDialog({super.key});
+
   @override
   _AddPaymentMethodDialogState createState() => _AddPaymentMethodDialogState();
 }

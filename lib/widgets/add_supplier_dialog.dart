@@ -5,6 +5,8 @@ import 'package:provisions/providers/purchase_provider.dart';
 
 // Dialog for adding a new supplier
 class AddSupplierDialog extends StatefulWidget {
+  const AddSupplierDialog({super.key});
+
   @override
   _AddSupplierDialogState createState() => _AddSupplierDialogState();
 }

@@ -227,7 +227,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     if (chips.isEmpty) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
       child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Wrap(spacing: 8.0, children: chips)),
     );
   }

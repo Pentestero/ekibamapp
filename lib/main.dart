@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart'; // ADD THIS IMPORT
 import 'package:provider/provider.dart';
 import 'package:provisions/providers/purchase_provider.dart';
 import 'package:provisions/services/auth_service.dart';
 import 'package:provisions/theme.dart';
-import 'package:provisions/screens/home_page.dart';
-import 'package:provisions/screens/auth_screen.dart';
 import 'package:provisions/screens/splash_screen.dart';
-import 'package:provisions/screens/reset_password_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   await initializeDateFormatting('fr_FR', null); // ADD THIS CALL
 
   await Supabase.initialize(

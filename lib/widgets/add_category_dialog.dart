@@ -4,6 +4,8 @@ import 'package:provisions/providers/purchase_provider.dart';
 
 // Dialog for adding a new Category
 class AddCategoryDialog extends StatefulWidget {
+  const AddCategoryDialog({super.key});
+
   @override
   _AddCategoryDialogState createState() => _AddCategoryDialogState();
 }

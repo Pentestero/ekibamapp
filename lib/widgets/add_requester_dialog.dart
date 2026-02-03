@@ -4,6 +4,8 @@ import 'package:provisions/providers/purchase_provider.dart';
 
 // Dialog for adding a new requester
 class AddRequesterDialog extends StatefulWidget {
+  const AddRequesterDialog({super.key});
+
   @override
   _AddRequesterDialogState createState() => _AddRequesterDialogState();
 }
