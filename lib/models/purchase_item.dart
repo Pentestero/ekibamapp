@@ -41,7 +41,7 @@ class PurchaseItem {
 
 
   Map<String, dynamic> toMap() {
-    return {
+    final Map<String, dynamic> map = {
       'id': id,
       'purchase_id': purchaseId,
       'category': category,
@@ -55,6 +55,7 @@ class PurchaseItem {
       'comment': comment,
       'expense_date': expenseDate?.toIso8601String(), // Updated in toMap
     };
+    return map;
   }
 
   static PurchaseItem fromMap(Map<String, dynamic> map) {

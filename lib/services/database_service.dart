@@ -59,7 +59,23 @@ class DatabaseService {
         'mode_rglt_text': purchase.modeRglt,
         'comments_text': purchase.comments,
         'creator_user_id': userId,
-        'purchase_items': purchase.items.map((item) => {
+        'purchase_items': [], // Sending an empty list to the RPC, as items will be inserted separately.
+      };
+
+      // Call the database function
+      final rpcResult = await _supabase.rpc(
+        'create_purchase_with_ref_da',
+        params: params,
+      );
+
+      // Assuming rpcResult is a Map<String, dynamic> containing the newly created purchase.
+      // Adjust this parsing based on the actual return type of your RPC function if it's different.
+      final newPurchaseId = rpcResult['id'] as int;
+
+      // Insert purchase items separately, linking them to the newly created purchase ID.
+      if (purchase.items.isNotEmpty) {
+        final itemsToInsert = purchase.items.map((item) => {
+          'purchase_id': newPurchaseId, // Link item to the new purchase ID
           'category': item.category,
           'sub_category_1': item.subCategory1,
           'sub_category_2': item.subCategory2,
@@ -70,20 +86,11 @@ class DatabaseService {
           'payment_fee': item.paymentFee,
           'comment': item.comment,
           'expense_date': item.expenseDate?.toIso8601String(),
-        }).toList(),
-      };
+        }).toList();
+        await _supabase.from('purchase_items').insert(itemsToInsert);
+      }
 
-      // Call the database function
-      final rpcResult = await _supabase.rpc(
-        'create_purchase_with_ref_da',
-        params: params,
-      );
-
-      // Assuming rpcResult is a List containing a single Map with the purchase ID.
-      // Adjust this parsing based on the actual return type of your RPC function.
-      final newPurchaseId = (rpcResult as List<dynamic>).first['id'] as int;
-
-      // Now, fetch the complete purchase record including its items to ensure all fields are correctly populated.
+      // Now, fetch the complete purchase record including its newly inserted items.
       final fetchedPurchaseData = await _supabase
           .from('purchases')
           .select('*, purchase_items(*, suppliers(*))')

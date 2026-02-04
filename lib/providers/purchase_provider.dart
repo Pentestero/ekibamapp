@@ -393,13 +393,14 @@ class PurchaseProvider with ChangeNotifier {
   Future<Purchase> _preparePurchaseForSaving() async {
     final now = DateTime.now();
 
-    return _purchaseBuilder.copyWith(
+    final Purchase purchaseToSave = _purchaseBuilder.copyWith( // Introduce a variable for debug print
       id: _editingPurchaseId,
       demander: _user?.userMetadata?['name'] ?? _purchaseBuilder.demander,
       items: _itemsBuilder,
       createdAt: _editingPurchaseId == null ? now : _purchaseBuilder.createdAt,
       modeRglt: _purchaseBuilder.paymentMethod,
     );
+    return purchaseToSave;
   }
 
   String? addNewItem() {
@@ -527,6 +528,7 @@ class PurchaseProvider with ChangeNotifier {
       paymentFee: oldItem.paymentFee,
       supplierName: oldItem.supplierName,
       comment: (comment == null || comment.isEmpty) ? null : comment, // Explicitly nullify if empty
+      expenseDate: oldItem.expenseDate, // Preserve the existing expense date
     );
     notifyListeners();
   }
