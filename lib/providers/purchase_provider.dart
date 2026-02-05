@@ -402,17 +402,26 @@ class PurchaseProvider with ChangeNotifier {
   Future<Purchase> _preparePurchaseForSaving() async {
     final now = DateTime.now();
 
+    // If it's a new purchase, set date and createdAt to now.
+    // If it's an existing purchase, retain original date and createdAt.
+    final DateTime effectiveDate = _editingPurchaseId == null ? now : _purchaseBuilder.date;
+    final DateTime effectiveCreatedAt = _editingPurchaseId == null ? now : _purchaseBuilder.createdAt;
+
+
     final Purchase purchaseToSave = _purchaseBuilder.copyWith(
       id: _editingPurchaseId,
+      date: effectiveDate, // Ensure purchase.date is immutable after creation
       demander: _user?.userMetadata?['name'] ?? _purchaseBuilder.demander,
       items: _itemsBuilder.map((item) {
+        // For items, preserve original createdAt if exists, otherwise set now.
+        // modifiedAt is always updated.
         return item.copyWith(
           createdAt: item.createdAt ?? now,
           modifiedAt: now,
         );
       }).toList(),
-      createdAt: _editingPurchaseId == null ? now : _purchaseBuilder.createdAt,
-      modifiedAt: _editingPurchaseId == null ? null : now,
+      createdAt: effectiveCreatedAt, // Ensure purchase.createdAt is immutable after creation
+      modifiedAt: _editingPurchaseId == null ? null : now, // Only set modifiedAt for existing purchases being saved
       modeRglt: _purchaseBuilder.paymentMethod,
     );
     return purchaseToSave;
@@ -562,7 +571,7 @@ class PurchaseProvider with ChangeNotifier {
     String? miseADBudget,
   }) {
     _purchaseBuilder = _purchaseBuilder.copyWith(
-      date: date,
+      date: isEditing ? _purchaseBuilder.date : date, // Keep original date if editing
       demander: demander,
       projectType: projectType,
       clientName: clientName,

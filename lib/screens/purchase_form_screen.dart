@@ -260,14 +260,14 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                   color: Theme.of(context).colorScheme.primary),
               title: Text(
                   DateFormat('dd/MM/yyyy').format(provider.purchaseBuilder.date)),
-              trailing: provider.isEditing ? null : Icon(Icons.arrow_drop_down,
-                  color: Theme.of(context).colorScheme.primary),
-              onTap: provider.isEditing ? null : () => _selectDate(context, provider),
+              trailing: null, // Always null as it's not modifiable
+              onTap: null,   // Always null as it's not modifiable
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
                 side: BorderSide(
                     color: Theme.of(context).colorScheme.primary.withAlpha(128)),
               ),
+              tileColor: Theme.of(context).disabledColor.withOpacity(0.1), // Always visually disabled
             ),
             const SizedBox(height: 16),
             TextFormField(
