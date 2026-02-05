@@ -1,3 +1,4 @@
+import 'package:provisions/widgets/filter_panel.dart'; // Import FilterState
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:provisions/providers/purchase_provider.dart';
@@ -192,7 +193,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => provider.loadPurchases(),
+                    onPressed: () => provider.loadPurchases(FilterState()),
                     child: const Text('Réessayer'),
                   ),
                 ],
@@ -203,7 +204,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           return FadeTransition(
             opacity: _fadeAnimation,
             child: RefreshIndicator(
-              onRefresh: () => provider.loadPurchases(),
+              onRefresh: () => provider.loadPurchases(FilterState()),
               child: SingleChildScrollView(
                 key: const ValueKey('dashboard_loaded'),
                 padding: const EdgeInsets.all(16),

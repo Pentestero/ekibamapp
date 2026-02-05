@@ -15,6 +15,8 @@ class PurchaseItem {
   final int paymentFee;
   final String? comment;
   final DateTime? expenseDate; // Replaced choiceDate with expenseDate
+  final DateTime? createdAt;
+  final DateTime? modifiedAt;
 
   final String? supplierName;
 
@@ -33,7 +35,11 @@ class PurchaseItem {
     this.supplierName,
     this.comment,
     this.expenseDate, // Updated in constructor
-  }) : _localId = localId ?? DateTime.now().millisecondsSinceEpoch;
+    DateTime? createdAt,
+    DateTime? modifiedAt,
+  }) : _localId = localId ?? DateTime.now().millisecondsSinceEpoch,
+        createdAt = createdAt ?? DateTime.now(),
+        modifiedAt = modifiedAt ?? createdAt ?? DateTime.now();
 
   int get total => ((quantity * unitPrice) + paymentFee).round();
 
@@ -54,6 +60,8 @@ class PurchaseItem {
       'payment_fee': paymentFee,
       'comment': comment,
       'expense_date': expenseDate?.toIso8601String(), // Updated in toMap
+      'created_at': createdAt?.toIso8601String(),
+      'modified_at': modifiedAt?.toIso8601String(),
     };
     return map;
   }
@@ -78,6 +86,12 @@ class PurchaseItem {
       expenseDate: map['expense_date'] == null // Updated in fromMap
           ? null
           : DateTime.parse(map['expense_date'] as String),
+      createdAt: map['created_at'] == null
+          ? null
+          : DateTime.parse(map['created_at'] as String),
+      modifiedAt: map['modified_at'] == null
+          ? null
+          : DateTime.parse(map['modified_at'] as String),
     );
   }
 
@@ -96,6 +110,8 @@ class PurchaseItem {
     String? supplierName,
     String? comment,
     DateTime? expenseDate, // Updated in copyWith parameters
+    DateTime? createdAt,
+    DateTime? modifiedAt,
   }) {
     return PurchaseItem(
       id: id ?? this.id,
@@ -112,6 +128,8 @@ class PurchaseItem {
       supplierName: supplierName ?? this.supplierName,
       comment: comment ?? this.comment,
       expenseDate: expenseDate ?? this.expenseDate, // Updated in copyWith body
+      createdAt: createdAt ?? this.createdAt,
+      modifiedAt: modifiedAt ?? this.modifiedAt,
     );
   }
 

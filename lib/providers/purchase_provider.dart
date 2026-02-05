@@ -1,3 +1,4 @@
+import 'package:provisions/widgets/filter_panel.dart'; // Import FilterState
 import 'package:flutter/material.dart';
 import 'package:provisions/models/library_item.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -80,7 +81,7 @@ class PurchaseProvider with ChangeNotifier {
     notifyListeners();
 
     await Future.wait([
-      loadPurchases(notify: false),
+      loadPurchases(FilterState(), notify: false), // Pass default FilterState
       _loadSuppliers(),
       _loadRequesters(),
       _loadPaymentMethods(),
@@ -93,16 +94,23 @@ class PurchaseProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadPurchases({bool notify = true}) async {
+  Future<void> loadPurchases(FilterState? filters, {bool notify = true}) async {
     if (_user == null) return;
     if (notify) {
       _isLoading = true;
       _errorMessage = '';
       notifyListeners();
     }
+    debugPrint('PurchaseProvider loadPurchases received filters: '
+        'searchQuery: ${(filters?.searchQuery.isEmpty ?? true) ? 'empty' : filters?.searchQuery}, '
+        'year: ${filters?.year ?? 'null'}, '
+        'month: ${filters?.month ?? 'null'}, '
+        'startDate: ${filters?.startDate?.toIso8601String() ?? 'null'}, '
+        'endDate: ${filters?.endDate?.toIso8601String() ?? 'null'}, '
+        'sortOption: ${filters?.sortOption}');
 
     try {
-      _purchases = await _dbService.getAllPurchases();
+      _purchases = await _dbService.getAllPurchases(filters ?? FilterState());
       _errorMessage = '';
     } catch (e) {
       _errorMessage = 'Erreur chargement achats: $e';
@@ -190,7 +198,7 @@ class PurchaseProvider with ChangeNotifier {
       if (index != -1) {
         _purchases[index] = updatedPurchase;
       } else {
-        await loadPurchases(notify: false); // Fallback
+        await loadPurchases(FilterState(), notify: false); // Fallback
       }
 
       clearForm();
@@ -386,6 +394,7 @@ class PurchaseProvider with ChangeNotifier {
       projectType: _projectTypes.first,
       paymentMethod: initialPaymentMethod,
       createdAt: DateTime.now(),
+      modifiedAt: DateTime.now(),
       miseADBudget: null,
     );
   }
@@ -393,11 +402,17 @@ class PurchaseProvider with ChangeNotifier {
   Future<Purchase> _preparePurchaseForSaving() async {
     final now = DateTime.now();
 
-    final Purchase purchaseToSave = _purchaseBuilder.copyWith( // Introduce a variable for debug print
+    final Purchase purchaseToSave = _purchaseBuilder.copyWith(
       id: _editingPurchaseId,
       demander: _user?.userMetadata?['name'] ?? _purchaseBuilder.demander,
-      items: _itemsBuilder,
+      items: _itemsBuilder.map((item) {
+        return item.copyWith(
+          createdAt: item.createdAt ?? now,
+          modifiedAt: now,
+        );
+      }).toList(),
       createdAt: _editingPurchaseId == null ? now : _purchaseBuilder.createdAt,
+      modifiedAt: _editingPurchaseId == null ? null : now,
       modeRglt: _purchaseBuilder.paymentMethod,
     );
     return purchaseToSave;
@@ -507,6 +522,8 @@ class PurchaseProvider with ChangeNotifier {
       supplierName: itemSupplierName,
       comment: oldItem.comment, // Preserve existing comment
       expenseDate: finalExpenseDate, // Changed from choiceDate
+      createdAt: oldItem.createdAt, // Preserve existing creation date
+      modifiedAt: DateTime.now(), // Update modification date
     );
     notifyListeners();
   }
@@ -529,6 +546,8 @@ class PurchaseProvider with ChangeNotifier {
       supplierName: oldItem.supplierName,
       comment: (comment == null || comment.isEmpty) ? null : comment, // Explicitly nullify if empty
       expenseDate: oldItem.expenseDate, // Preserve the existing expense date
+      createdAt: oldItem.createdAt, // Preserve existing creation date
+      modifiedAt: DateTime.now(), // Update modification date
     );
     notifyListeners();
   }

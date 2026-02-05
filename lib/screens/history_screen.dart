@@ -58,53 +58,15 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
             setState(() {
               _filterState = newFilters;
             });
+            // Trigger a data reload from the provider with the new filters
+            provider.loadPurchases(_filterState);
           },
         );
       },
     );
   }
 
-  List<Purchase> _getFilteredAndSortedPurchases(List<Purchase> allPurchases) {
-    List<Purchase> filteredList = List.from(allPurchases);
 
-    if (_filterState.searchQuery.isNotEmpty) {
-      final query = _filterState.searchQuery.toLowerCase();
-      filteredList = filteredList.where((p) {
-        return (p.refDA?.toLowerCase().contains(query) ?? false) ||
-            (p.demander.toLowerCase().contains(query)) ||
-            (p.clientName?.toLowerCase().contains(query) ?? false) ||
-            p.items.any((item) =>
-                item.category.toLowerCase().contains(query) ||
-                item.subCategory1.toLowerCase().contains(query) ||
-                (item.subCategory2?.toLowerCase().contains(query) ?? false));
-      }).toList();
-    }
-
-    if (_filterState.year != null) {
-      filteredList = filteredList.where((p) => p.date.year == _filterState.year).toList();
-    }
-
-    if (_filterState.month != null) {
-      filteredList = filteredList.where((p) => p.date.month == _filterState.month).toList();
-    }
-
-    switch (_filterState.sortOption) {
-      case SortOption.dateAsc:
-        filteredList.sort((a, b) => a.date.compareTo(b.date));
-        break;
-      case SortOption.dateDesc:
-        filteredList.sort((a, b) => b.date.compareTo(a.date));
-        break;
-      case SortOption.amountAsc:
-        filteredList.sort((a, b) => a.grandTotal.compareTo(b.grandTotal));
-        break;
-      case SortOption.amountDesc:
-        filteredList.sort((a, b) => b.grandTotal.compareTo(a.grandTotal));
-        break;
-    }
-
-    return filteredList;
-  }
 
   void _onExport(List<Purchase> purchasesToExport) {
     if (purchasesToExport.isEmpty) {
@@ -136,23 +98,22 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PurchaseProvider>();
-    final allPurchases = provider.purchases;
-    final filteredAndSortedPurchases = _getFilteredAndSortedPurchases(allPurchases);
+    final purchasesToDisplay = provider.purchases; // Already filtered and sorted by provider
 
     final isAllSelected = _isSelectionMode &&
-        filteredAndSortedPurchases.isNotEmpty &&
-        _selectedPurchaseIds.length == filteredAndSortedPurchases.length;
+        purchasesToDisplay.isNotEmpty &&
+        _selectedPurchaseIds.length == purchasesToDisplay.length;
 
     return Scaffold(
       appBar: AppBar(
         title: _isSelectionMode ? Text('${_selectedPurchaseIds.length} sélectionné(s)') : const AppBrand(),
-        actions: _buildAppBarActions(provider, filteredAndSortedPurchases, isAllSelected),
+        actions: _buildAppBarActions(provider, purchasesToDisplay, isAllSelected),
       ),
-      body: _buildBody(provider, filteredAndSortedPurchases),
+      body: _buildBody(provider, purchasesToDisplay),
     );
   }
 
-  List<Widget> _buildAppBarActions(PurchaseProvider provider, List<Purchase> filteredList, bool isAllSelected) {
+  List<Widget> _buildAppBarActions(PurchaseProvider provider, List<Purchase> purchasesToDisplay, bool isAllSelected) {
     if (_isSelectionMode) {
       return [
         Checkbox(
@@ -160,7 +121,7 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
           onChanged: (bool? value) {
             setState(() {
               if (value == true) {
-                _selectedPurchaseIds = filteredList.map((p) => p.id!).toSet();
+                _selectedPurchaseIds = purchasesToDisplay.map((p) => p.id!).toSet();
               } else {
                 _selectedPurchaseIds.clear();
               }
@@ -197,15 +158,15 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
         ),
         IconButton(
           icon: const Icon(Icons.file_download),
-          tooltip: 'Exporter la liste filtrée',
-          onPressed: () => _onExport(filteredList),
+          tooltip: 'Télécharger la liste filtrée (Excel)', // More specific tooltip
+          onPressed: () => _onExport(purchasesToDisplay),
         ),
       ];
     }
   }
 
-  Widget _buildBody(PurchaseProvider provider, List<Purchase> filteredAndSortedPurchases) {
-    if (provider.isLoading && provider.purchases.isEmpty) {
+  Widget _buildBody(PurchaseProvider provider, List<Purchase> purchasesToDisplay) {
+    if (provider.isLoading && purchasesToDisplay.isEmpty) {
       return HistorySkeleton();
     }
     if (provider.errorMessage.isNotEmpty) {
@@ -215,18 +176,18 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
     return FadeTransition(
       opacity: _contentFadeAnimation,
       child: RefreshIndicator(
-        onRefresh: () => provider.loadPurchases(),
+        onRefresh: () => provider.loadPurchases(_filterState), // Pass current filter state
         child: Column(
           children: [
             _buildFilterChipsBar(),
             Expanded(
-              child: filteredAndSortedPurchases.isEmpty
+              child: purchasesToDisplay.isEmpty
                   ? _buildEmptyStateWidget(context)
                   : ListView.builder(
                       padding: const EdgeInsets.all(8),
-                      itemCount: filteredAndSortedPurchases.length,
+                      itemCount: purchasesToDisplay.length,
                       itemBuilder: (context, index) {
-                        final purchase = filteredAndSortedPurchases[index];
+                        final purchase = purchasesToDisplay[index];
                         return PurchaseCard(
                           purchase: purchase,
                           isSelectionMode: _isSelectionMode,
@@ -244,22 +205,61 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
 
   Widget _buildFilterChipsBar() {
     List<Widget> chips = [];
+    final provider = context.read<PurchaseProvider>(); // Access provider here
+
     if (_filterState.searchQuery.isNotEmpty) {
       chips.add(Chip(
         label: Text('Recherche: "${_filterState.searchQuery}"'),
-        onDeleted: () => setState(() => _filterState = _filterState.copyWith(searchQuery: '')),
+        onDeleted: () {
+          setState(() {
+            _filterState = _filterState.copyWith(searchQuery: '');
+          });
+          provider.loadPurchases(_filterState); // Reload data
+        },
       ));
     }
     if (_filterState.year != null) {
       chips.add(Chip(
         label: Text('Année: ${_filterState.year}'),
-        onDeleted: () => setState(() => _filterState = _filterState.copyWith(resetYear: true)),
+        onDeleted: () {
+          setState(() {
+            _filterState = _filterState.copyWith(resetYear: true);
+          });
+          provider.loadPurchases(_filterState); // Reload data
+        },
       ));
     }
     if (_filterState.month != null) {
       chips.add(Chip(
         label: Text('Mois: ${_filterState.month != null ? DateFormat.MMMM('fr_FR').format(DateTime(0, _filterState.month!)) : ''}'),
-        onDeleted: () => setState(() => _filterState = _filterState.copyWith(resetMonth: true)),
+        onDeleted: () {
+          setState(() {
+            _filterState = _filterState.copyWith(resetMonth: true);
+          });
+          provider.loadPurchases(_filterState); // Reload data
+        },
+      ));
+    }
+    if (_filterState.startDate != null) {
+      chips.add(Chip(
+        label: Text('Date début: ${DateFormat('dd/MM/yyyy').format(_filterState.startDate!)}'),
+        onDeleted: () {
+          setState(() {
+            _filterState = _filterState.copyWith(resetStartDate: true);
+          });
+          provider.loadPurchases(_filterState); // Reload data
+        },
+      ));
+    }
+    if (_filterState.endDate != null) {
+      chips.add(Chip(
+        label: Text('Date fin: ${DateFormat('dd/MM/yyyy').format(_filterState.endDate!)}'),
+        onDeleted: () {
+          setState(() {
+            _filterState = _filterState.copyWith(resetEndDate: true);
+          });
+          provider.loadPurchases(_filterState); // Reload data
+        },
       ));
     }
     
@@ -289,7 +289,7 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Icon(isNetworkError ? Icons.wifi_off : Icons.error_outline, size: 64, color: Colors.red),
       const SizedBox(height: 16), Text(errorMessage, textAlign: TextAlign.center),
-      const SizedBox(height: 16), ElevatedButton(onPressed: () => provider.loadPurchases(), child: const Text('Réessayer')),
+      const SizedBox(height: 16), ElevatedButton(onPressed: () => provider.loadPurchases(_filterState), child: const Text('Réessayer')),
     ]));
   }
 
@@ -402,6 +402,9 @@ class PurchaseCard extends StatelessWidget {
                         Text(DateFormat('dd/MM/yyyy').format(purchase.date)),
                       ],
                     ),
+                    Text('Créé le: ${DateFormat('dd/MM/yyyy').format(purchase.createdAt)}', style: Theme.of(context).textTheme.bodySmall),
+                    if (purchase.modifiedAt != null && purchase.modifiedAt!.difference(purchase.createdAt).inSeconds > 5)
+                      Text('Modifié le: ${DateFormat('dd/MM/yyyy').format(purchase.modifiedAt!)}', style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ),
               ),
@@ -440,7 +443,7 @@ class PurchaseCard extends StatelessWidget {
           child: Row(children: [
             Icon(Icons.picture_as_pdf, color: Colors.red.shade700),
             const SizedBox(width: 8),
-            const Text('Générer PDF'),
+            const Text('Télécharger PDF'), // Changed text
           ]),
         ),
         PopupMenuItem(

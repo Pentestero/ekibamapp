@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:provisions/models/supplier.dart';
 import 'package:provisions/providers/purchase_provider.dart';
 
 // Dialog for adding a new supplier

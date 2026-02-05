@@ -60,6 +60,9 @@ class PdfService {
         purchase.miseADBudget!.isNotEmpty &&
         purchase.miseADBudget != purchase.demander;
 
+    final isModified = purchase.modifiedAt != null &&
+        purchase.modifiedAt!.difference(purchase.createdAt).inSeconds > 5;
+
     return pw.Column(children: [
       pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -87,8 +90,12 @@ class PdfService {
               pw.Text('Ref DA: ${purchase.refDA ?? 'N/A'}',
                   style: const pw.TextStyle(fontSize: 10)), // Smaller text
               pw.Text(
-                  'Date: ${DateFormat('dd/MM/yyyy').format(purchase.date)}',
+                  'Créé le: ${DateFormat('dd/MM/yyyy').format(purchase.date)}', // Changed label
                   style: const pw.TextStyle(fontSize: 10)), // Smaller text
+              if (isModified) // Conditionally display modified date
+                pw.Text(
+                    'Modifié le: ${DateFormat('dd/MM/yyyy').format(purchase.modifiedAt!)}',
+                    style: const pw.TextStyle(fontSize: 10)),
             ],
           ),
         ],

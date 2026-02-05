@@ -12,6 +12,7 @@ class Purchase {
   final String? modeRglt;
   final String comments;
   final DateTime createdAt;
+  final DateTime? modifiedAt;
 
   List<PurchaseItem> items;
 
@@ -27,6 +28,7 @@ class Purchase {
     this.modeRglt,
     this.comments = '',
     required this.createdAt,
+    this.modifiedAt,
     this.items = const [],
   });
 
@@ -48,6 +50,7 @@ class Purchase {
       'mode_rglt': modeRglt,
       'comments': comments,
       'createdAt': createdAt.toIso8601String(),
+      'modifiedAt': modifiedAt?.toIso8601String(),
     };
   }
 
@@ -74,6 +77,9 @@ class Purchase {
       createdAt: map['created_at'] != null
           ? DateTime.parse(map['created_at'] as String)
           : DateTime.now(),
+      modifiedAt: map['modified_at'] != null
+          ? DateTime.parse(map['modified_at'] as String)
+          : null,
       items: items,
     );
   }
@@ -90,6 +96,7 @@ class Purchase {
     String? modeRglt,
     String? comments,
     DateTime? createdAt,
+    DateTime? modifiedAt,
     List<PurchaseItem>? items,
   }) {
     return Purchase(
@@ -104,6 +111,7 @@ class Purchase {
       modeRglt: modeRglt ?? this.modeRglt,
       comments: comments ?? this.comments,
       createdAt: createdAt ?? this.createdAt,
+      modifiedAt: modifiedAt ?? this.modifiedAt,
       items: items ?? this.items,
     );
   }

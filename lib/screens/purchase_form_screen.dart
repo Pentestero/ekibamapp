@@ -36,7 +36,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _commentsController = TextEditingController();
   final _clientNameController = TextEditingController();
-  bool _isAiProcessing = false;
+  final bool _isAiProcessing = false;
 
   Future<void> _scanInvoiceWithAI() async {
     // Subscription check simulation
@@ -260,9 +260,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                   color: Theme.of(context).colorScheme.primary),
               title: Text(
                   DateFormat('dd/MM/yyyy').format(provider.purchaseBuilder.date)),
-              trailing: Icon(Icons.arrow_drop_down,
+              trailing: provider.isEditing ? null : Icon(Icons.arrow_drop_down,
                   color: Theme.of(context).colorScheme.primary),
-              onTap: () => _selectDate(context, provider),
+              onTap: provider.isEditing ? null : () => _selectDate(context, provider),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
                 side: BorderSide(

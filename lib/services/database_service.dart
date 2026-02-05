@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provisions/models/purchase.dart';
-import 'package:provisions/models/purchase_item.dart';
 import 'package:provisions/models/library_item.dart';
 import 'package:provisions/models/supplier.dart';
+import '../widgets/filter_panel.dart'; // Import FilterState
 
 class DatabaseService {
   DatabaseService._privateConstructor();
@@ -12,21 +11,66 @@ class DatabaseService {
 
   final _supabase = Supabase.instance.client;
 
-  Future<List<Purchase>> getAllPurchases() async {
+  Future<List<Purchase>> getAllPurchases(FilterState filters) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return [];
 
     try {
-      final data = await _supabase
+      var query = _supabase
           .from('purchases')
           .select('*, purchase_items(*, suppliers(*))')
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
+          .eq('user_id', userId);
 
+      // Apply search query filter
+      if (filters.searchQuery.isNotEmpty) {
+        // Supabase doesn't directly support ILIKE across multiple related columns easily
+        // This example applies to 'demander' column, assuming it's a primary search target.
+        // For broader search, consider Supabase's full-text search features or a custom RPC.
+        query = query.ilike('demander', '%${filters.searchQuery}%');
+      }
+
+      // Apply date filters
+      DateTime? finalStartDate = filters.startDate;
+      DateTime? finalEndDate = filters.endDate;
+
+      // If no specific startDate/endDate are provided, try to derive from year/month
+      if (finalStartDate == null && finalEndDate == null && filters.year != null) {
+        finalStartDate = DateTime(filters.year!, filters.month ?? 1, 1);
+        finalEndDate = (filters.month != null)
+            ? DateTime(filters.year!, filters.month! + 1, 0, 23, 59, 59)
+            : DateTime(filters.year! + 1, 1, 0, 23, 59, 59);
+      }
+
+      if (finalStartDate != null) {
+        final startOfDayUtc = DateTime.utc(finalStartDate.year, finalStartDate.month, finalStartDate.day);
+        debugPrint('Filtering GTE date: ${startOfDayUtc.toIso8601String()}');
+        query = query.gte('date', startOfDayUtc.toIso8601String());
+      }
+      if (finalEndDate != null) {
+        final nextDayUtc = DateTime.utc(finalEndDate.year, finalEndDate.month, finalEndDate.day)
+            .add(const Duration(days: 1));
+        debugPrint('Filtering LT date: ${nextDayUtc.toIso8601String()}');
+        query = query.lt('date', nextDayUtc.toIso8601String());
+      }
+
+      // Apply sorting
+      // NOTE: Sorting by 'amount' (grandTotal) client-side as it's a computed field.
+      // To sort by amount server-side, grandTotal would need to be a stored column or accessible via a Supabase view/function.
+
+      final data = await query.order('date',
+          ascending: filters.sortOption == SortOption.dateAsc);
       final purchases = data.map((p) => Purchase.fromMap(p)).toList();
+
+      // Client-side sort for grandTotal if requested (since server-side is harder for computed grandTotal)
+      if (filters.sortOption == SortOption.amountAsc) {
+        purchases.sort((a, b) => a.grandTotal.compareTo(b.grandTotal));
+      } else if (filters.sortOption == SortOption.amountDesc) {
+        purchases.sort((a, b) => b.grandTotal.compareTo(a.grandTotal));
+      }
+
       return purchases;
     } catch (e) {
-      debugPrint("Erreur lors de la récupération des achats: $e");
+      debugPrint("Erreur lors de la récupération des achats filtrés: $e");
       rethrow;
     }
   }
@@ -86,6 +130,8 @@ class DatabaseService {
           'payment_fee': item.paymentFee,
           'comment': item.comment,
           'expense_date': item.expenseDate?.toIso8601String(),
+          'created_at': item.createdAt?.toIso8601String(),
+          'modified_at': item.modifiedAt?.toIso8601String(),
         }).toList();
         await _supabase.from('purchase_items').insert(itemsToInsert);
       }
@@ -117,6 +163,7 @@ class DatabaseService {
         'mise_ad_budget': purchase.miseADBudget,
         'mode_rglt': purchase.modeRglt,
         'comments': purchase.comments,
+        'modified_at': purchase.modifiedAt?.toIso8601String(),
       };
 
       await _supabase
@@ -142,6 +189,8 @@ class DatabaseService {
           'payment_fee': item.paymentFee,
           'comment': item.comment,
           'expense_date': item.expenseDate?.toIso8601String(),
+          'created_at': item.createdAt?.toIso8601String(),
+          'modified_at': item.modifiedAt?.toIso8601String(),
         }).toList();
 
         await _supabase.from('purchase_items').insert(itemsToInsert);
