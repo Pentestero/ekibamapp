@@ -81,8 +81,8 @@ class PurchaseProvider with ChangeNotifier {
     notifyListeners();
 
     await Future.wait([
-      loadPurchases(FilterState(), notify: false), // Pass default FilterState
-      _loadSuppliers(),
+      loadPurchases(FilterState(), notify: false),
+      loadAllPurchases(FilterState(), notify: false),      _loadSuppliers(),
       _loadRequesters(),
       _loadPaymentMethods(),
       _loadCategories(),
@@ -108,9 +108,19 @@ class PurchaseProvider with ChangeNotifier {
         'startDate: ${filters?.startDate?.toIso8601String() ?? 'null'}, '
         'endDate: ${filters?.endDate?.toIso8601String() ?? 'null'}, '
         'sortOption: ${filters?.sortOption}');
+    debugPrint('PurchaseProvider calling _dbService.getAllPurchases with FilterState: '
+        'searchQuery: ${((filters ?? FilterState()).searchQuery.isEmpty) ? 'empty' : (filters ?? FilterState()).searchQuery}, '
+        'year: ${(filters ?? FilterState()).year ?? 'null'}, '
+        'month: ${(filters ?? FilterState()).month ?? 'null'}, '
+        'startDate: ${(filters ?? FilterState()).startDate?.toIso8601String() ?? 'null'}, '
+        'endDate: ${(filters ?? FilterState()).endDate?.toIso8601String() ?? 'null'}, '
+        'sortOption: ${(filters ?? FilterState()).sortOption}');
 
     try {
-      _purchases = await _dbService.getAllPurchases(filters ?? FilterState());
+      final allPurchases = await _dbService.getAllPurchases(filters ?? FilterState());
+      List<Purchase> result = allPurchases;
+
+      _purchases = result;
       _errorMessage = '';
     } catch (e) {
       _errorMessage = 'Erreur chargement achats: $e';
@@ -122,7 +132,7 @@ class PurchaseProvider with ChangeNotifier {
     }
   }
 
-  Future<void> loadAllPurchases({bool notify = true}) async {
+  Future<void> loadAllPurchases(FilterState? filters, {bool notify = true}) async {
     if (_user == null) return;
     if (notify) {
       _isLoading = true;
@@ -131,7 +141,7 @@ class PurchaseProvider with ChangeNotifier {
     }
 
     try {
-      _allPurchases = await _dbService.getAllPurchasesForAdmin();
+      _allPurchases = await _dbService.getAllPurchasesForAdmin(filters ?? FilterState());
       _errorMessage = '';
     } catch (e) {
       _errorMessage = 'Erreur chargement de tous les achats (admin): $e';

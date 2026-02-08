@@ -43,35 +43,69 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
   }
 
   void _showFilterPanel() {
+    debugPrint('HistoryScreen: _showFilterPanel opened. Current _filterState: ${_filterState.searchQuery}, Year: ${_filterState.year}, Month: ${_filterState.month}');
     final provider = context.read<PurchaseProvider>();
     final availableYears = provider.purchases.map((p) => p.date.year).toSet().toList();
     availableYears.sort((a, b) => b.compareTo(a));
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) {
+      builder: (_) {
         return FilterPanel(
           initialFilters: _filterState,
           availableYears: availableYears,
           onFilterChanged: (newFilters) {
-            setState(() {
-              _filterState = newFilters;
-            });
-            // Trigger a data reload from the provider with the new filters
-            provider.loadPurchases(_filterState);
+            setState(() => _filterState = newFilters);
+            debugPrint('HistoryScreen: _showFilterPanel: Filter changed to: ${newFilters.searchQuery}, Year: ${newFilters.year}, Month: ${newFilters.month}');
+            provider.loadPurchases(newFilters); // Explicit call
+            if (mounted && (newFilters.startDate != null || newFilters.endDate != null)) {
+              final infoColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.blue.shade600 : Colors.blue.shade400;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Theme.of(context).colorScheme.onPrimary),
+                      const SizedBox(width: 8),
+                      const Text('Filtre par date appliqué'),
+                    ],
+                  ),
+                  backgroundColor: infoColor,
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              );
+            }
           },
         );
       },
-    );
+    ).then((_) {
+      if (mounted) {
+        debugPrint('HistoryScreen: _showFilterPanel closed. Reloading purchases with _filterState: ${_filterState.searchQuery}, Year: ${_filterState.year}, Month: ${_filterState.month}');
+        provider.loadPurchases(_filterState);
+      }
+    });
   }
 
 
 
   void _onExport(List<Purchase> purchasesToExport) {
     if (purchasesToExport.isEmpty) {
+      final warningColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.orange.shade700 : Colors.orange.shade400;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucun achat à exporter.'), backgroundColor: Colors.orange),
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Theme.of(context).colorScheme.onPrimary), // Warning icon
+              const SizedBox(width: 8),
+              const Text('Aucun achat à exporter.'),
+            ],
+          ),
+          backgroundColor: warningColor,
+          duration: const Duration(seconds: 3), // Slightly longer duration
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
       );
       return;
     }
@@ -97,6 +131,7 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('HistoryScreen: build method called. Current _filterState: ${_filterState.searchQuery}, Year: ${_filterState.year}, Month: ${_filterState.month}');
     final provider = context.watch<PurchaseProvider>();
     final purchasesToDisplay = provider.purchases; // Already filtered and sorted by provider
 

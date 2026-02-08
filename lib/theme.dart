@@ -49,6 +49,12 @@ ThemeData _buildTheme(AppPalette palette, Brightness brightness) {
 
   final cs = scheme.copyWith(secondary: secondary, tertiary: tertiary);
 
+  // Define explicit status colors for messages
+  final Color successColor = brightness == Brightness.light ? Colors.green.shade600 : Colors.green.shade400;
+  final Color warningColor = brightness == Brightness.light ? Colors.orange.shade700 : Colors.orange.shade400;
+  final Color infoColor = brightness == Brightness.light ? Colors.blue.shade600 : Colors.blue.shade400;
+
+
   final textTheme = GoogleFonts.interTextTheme().apply(
     bodyColor: brightness == Brightness.dark ? cs.onSurface : null,
     displayColor: brightness == Brightness.dark ? cs.onSurface : null,
@@ -78,12 +84,84 @@ ThemeData _buildTheme(AppPalette palette, Brightness brightness) {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: cs.secondary,
-        foregroundColor: cs.onSecondary,
-        minimumSize: const Size(48, 48),
+        backgroundColor: cs.primary, // Primary button uses primary color
+        foregroundColor: cs.onPrimary,
+        minimumSize: const Size(48, 48), // Good touch target for mobile
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        elevation: 3, // Add some elevation
+      ).copyWith(
+        overlayColor: MaterialStateProperty.resolveWith<Color?>(
+          (Set<MaterialState> states) {
+            if (states.contains(MaterialState.hovered)) {
+              return cs.onPrimary.withOpacity(0.08); // Subtle hover effect
+            }
+            if (states.contains(MaterialState.focused)) {
+              return cs.onPrimary.withOpacity(0.12); // Subtle focus effect
+            }
+            if (states.contains(MaterialState.pressed)) {
+              return cs.onPrimary.withOpacity(0.12); // Subtle pressed effect
+            }
+            return null; // Defer to the widget's default.
+          },
+        ),
       ),
     ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: cs.primary, // Outlined uses primary color for text/border
+        minimumSize: const Size(48, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        side: BorderSide(color: cs.primary), // Border color
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ).copyWith(
+        overlayColor: MaterialStateProperty.resolveWith<Color?>(
+          (Set<MaterialState> states) {
+            if (states.contains(MaterialState.hovered)) {
+              return cs.primary.withOpacity(0.08);
+            }
+            if (states.contains(MaterialState.focused)) {
+              return cs.primary.withOpacity(0.12);
+            }
+            if (states.contains(MaterialState.pressed)) {
+              return cs.primary.withOpacity(0.12);
+            }
+            return null;
+          },
+        ),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: cs.primary, // Text button uses primary color
+        minimumSize: const Size(48, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ).copyWith(
+        overlayColor: MaterialStateProperty.resolveWith<Color?>(
+          (Set<MaterialState> states) {
+            if (states.contains(MaterialState.hovered)) {
+              return cs.primary.withOpacity(0.08);
+            }
+            if (states.contains(MaterialState.focused)) {
+              return cs.primary.withOpacity(0.12);
+            }
+            if (states.contains(MaterialState.pressed)) {
+              return cs.primary.withOpacity(0.12);
+            }
+            return null;
+          },
+        ),
+      ),
+    ),
+    // Destructive Button Style (example - could be used for danger actions)
+    // You can define a custom button widget that uses this, or apply directly
+    // to existing buttons that need this specific styling.
+    buttonTheme: ButtonThemeData(
+      colorScheme: cs.copyWith(error: cs.error),
+      textTheme: ButtonTextTheme.primary,
+    ),
+
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: cs.surface,
@@ -110,97 +188,4 @@ ThemeData _buildTheme(AppPalette palette, Brightness brightness) {
   );
 }
 
-ThemeData get lightTheme {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xFF3A86FF),
-    brightness: Brightness.light,
-  );
 
-  final vibrant = scheme.copyWith(
-    secondary: const Color(0xFFFFB703),
-    tertiary: const Color(0xFF2EC4B6),
-    surface: const Color(0xFFFDFDFD),
-    primaryContainer: const Color(0xFFE3F2FD),
-    secondaryContainer: const Color(0xFFFFF3E0),
-  );
-
-  return ThemeData(
-    useMaterial3: true,
-    colorScheme: vibrant,
-    textTheme: GoogleFonts.interTextTheme(),
-    scaffoldBackgroundColor: vibrant.surface,
-    appBarTheme: AppBarTheme(
-      backgroundColor: vibrant.primary,
-      foregroundColor: vibrant.onPrimary,
-      elevation: 2,
-      centerTitle: true,
-    ),
-    navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: vibrant.surface,
-      indicatorColor: vibrant.secondaryContainer,
-      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-    ),
-    navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: vibrant.surface,
-      selectedIconTheme: IconThemeData(color: vibrant.primary),
-      selectedLabelTextStyle: TextStyle(color: vibrant.primary),
-      unselectedIconTheme: IconThemeData(color: vibrant.secondary),
-    ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: vibrant.secondary,
-        foregroundColor: vibrant.onSecondary,
-        minimumSize: const Size(48, 48),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    ),
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: vibrant.surface,
-      focusedBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: vibrant.primary, width: 2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-    ),
-    cardTheme: const CardThemeData(
-      elevation: 2,
-      margin: EdgeInsets.all(8),
-    ),
-    pageTransitionsTheme: const PageTransitionsTheme(
-      builders: {
-        TargetPlatform.android: ZoomPageTransitionsBuilder(),
-        TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
-        TargetPlatform.linux: ZoomPageTransitionsBuilder(),
-        TargetPlatform.macOS: ZoomPageTransitionsBuilder(),
-        TargetPlatform.windows: ZoomPageTransitionsBuilder(),
-      },
-    ),
-    visualDensity: VisualDensity.adaptivePlatformDensity,
-  );
-}
-
-ThemeData get darkTheme => ThemeData(
-  useMaterial3: true,
-  colorScheme: ColorScheme.fromSeed(
-    seedColor: const Color(0xFF007BFF),
-    brightness: Brightness.dark,
-  ),
-  textTheme: GoogleFonts.interTextTheme().apply(
-    bodyColor: Colors.white,
-    displayColor: Colors.white,
-  ),
-  appBarTheme: const AppBarTheme(
-    foregroundColor: Colors.white,
-  ),
-  pageTransitionsTheme: const PageTransitionsTheme(
-    builders: {
-      TargetPlatform.android: ZoomPageTransitionsBuilder(),
-      TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
-      TargetPlatform.linux: ZoomPageTransitionsBuilder(),
-      TargetPlatform.macOS: ZoomPageTransitionsBuilder(),
-      TargetPlatform.windows: ZoomPageTransitionsBuilder(),
-    },
-  ),
-  visualDensity: VisualDensity.adaptivePlatformDensity,
-);

@@ -1,1 +1,67 @@
-Task completed.
+Le débogage avec un environnement de développement intégré (IDE) est le moyen le plus efficace de comprendre ce que votre code fait exactement, étape par étape, d'inspecter les valeurs des variables et de suivre le flux d'exécution. Voici comment faire avec Visual Studio Code (VS Code), l'IDE le plus utilisé pour le développement Flutter.
+
+**Prérequis :**
+*   Visual Studio Code est installé sur votre machine.
+*   L'extension Flutter pour VS Code est installée (elle inclut automatiquement le support Dart).
+
+**Étapes pour Déboguer une application Flutter avec VS Code :**
+
+**Étape 1 : Ouvrir votre projet Flutter dans VS Code**
+1.  Lancez Visual Studio Code.
+2.  Allez dans le menu `Fichier > Ouvrir un dossier...`.
+3.  Sélectionnez le dossier racine de votre projet Flutter (celui qui contient `pubspec.yaml`, `lib/`, etc., par exemple `C:\Users\Administrateur\Desktop\EkibamApp`).
+
+**Étape 2 : Sélectionner l'appareil ou le navigateur pour le débogage**
+1.  Dans la barre d'état bleue, tout en bas de la fenêtre VS Code, vous devriez voir une option pour sélectionner un appareil ou un navigateur (par exemple, "Chrome (web)", "Edge (web)", ou le nom d'un émulateur/appareil physique).
+2.  Cliquez sur cette option et choisissez l'appareil ou le navigateur sur lequel vous souhaitez exécuter votre application en mode débogage (par exemple, "Chrome (web)").
+
+**Étape 3 : Placer des points d'arrêt (Breakpoints)**
+Un point d'arrêt est un endroit dans votre code où l'exécution de l'application s'arrêtera temporairement. Cela vous permet d'examiner l'état de votre programme à un moment précis.
+
+1.  Ouvrez le fichier `lib/services/database_service.dart`.
+2.  Cliquez sur la gouttière (la zone grise à gauche des numéros de ligne) à côté des lignes de code suivantes (les numéros de ligne peuvent varier légèrement) :
+    *   `final startOfDayLocal = DateTime(finalStartDate.year, finalStartDate.month, finalStartDate.day);` (vers la ligne 54, dans la méthode `getAllPurchases`).
+    *   `debugPrint('Filtering GTE created_at: ${startOfDayUtc.toIso8601String()}');` (vers la ligne 56).
+    *   `query = query.gte('created_at', startOfDayUtc.toIso8601String());` (vers la ligne 57).
+    *   Faites de même pour la partie `finalEndDate` et `LTE` (vers les lignes 60 à 63).
+3.  Ouvrez le fichier `lib/providers/purchase_provider.dart`.
+4.  Placez des points d'arrêt aux endroits suivants :
+    *   `final allDbPurchases = await _dbService.getAllPurchases(filters ?? FilterState());` (vers la ligne 60 dans `loadPurchases`).
+    *   `if (finalStartDate != null)` (vers la ligne 64, c'est le début de la logique de filtrage côté client).
+    *   `debugPrint('Filtering LOCAL GTE created_at: ${startOfDayUtc.toIso8601String()}');` (vers la ligne 68).
+
+Un petit point rouge apparaîtra dans la gouttière pour indiquer chaque point d'arrêt que vous avez défini.
+
+**Étape 4 : Démarrer la session de débogage**
+1.  Allez dans la vue "Exécuter et Déboguer" (l'icône qui ressemble à un insecte avec une flèche) dans la barre d'activités gauche de VS Code.
+2.  Cliquez sur le bouton vert "Démarrer le débogage" (souvent représenté par une flèche "play") en haut du panneau.
+    *   VS Code va compiler et lancer votre application sur l'appareil/navigateur que vous avez sélectionné, en mode débogage.
+
+**Étape 5 : Interagir avec l'application et inspecter l'état du programme**
+1.  **L'application se lancera.** Elle s'arrêtera automatiquement au premier point d'arrêt qu'elle rencontrera (généralement lors du chargement initial).
+2.  **Panneau de débogage :** Lorsque l'exécution est arrêtée, le panneau de débogage de VS Code (sur la gauche) affichera des informations très utiles :
+    *   **Variables :** Vous y trouverez toutes les variables locales (par exemple, `filters`, `finalStartDate`, `finalEndDate`, `startOfDayLocal`, `startOfDayUtc`, `allDbPurchases`) avec leurs types et leurs valeurs actuelles.
+    *   **Espionnage (Watch) :** Vous pouvez ajouter des expressions spécifiques que vous souhaitez surveiller en continu (par exemple, taper `startOfDayUtc.toIso8601String()` pour voir son format exact).
+    *   **Pile d'appels (Call Stack) :** Indique la séquence des fonctions qui ont mené à l'arrêt actuel.
+
+3.  **Contrôles de débogage :** Une petite barre d'outils flottante (ou en haut du panneau de débogage) vous donne le contrôle de l'exécution :
+    *   **Continuer (F5) :** Reprend l'exécution de l'application jusqu'au prochain point d'arrêt (ou jusqu'à la fin du programme).
+    *   **Pas à pas principal (F10) :** Exécute la ligne de code actuelle et passe à la ligne suivante, sans entrer dans les fonctions appelées.
+    *   **Pas à pas détaillé (F11) :** Exécute la ligne de code actuelle et, si elle contient un appel de fonction, entre dans cette fonction pour déboguer son code interne.
+    *   **Pas à pas sortant (Shift+F11) :** Termine l'exécution de la fonction actuelle et retourne à la ligne de code qui a appelé cette fonction.
+    *   **Redémarrer (Ctrl+Shift+F5) :** Redémarre complètement la session de débogage (équivalent à un "Hot Restart").
+    *   **Arrêter (Shift+F5) :** Arrête la session de débogage et ferme l'application.
+
+4.  **Reproduire le problème et inspecter :**
+    *   Utilisez le bouton "Continuer" (F5) pour laisser l'application se charger complètement.
+    *   Dans le navigateur (ou l'émulateur/appareil) où votre application est lancée : naviguez vers l'écran contenant le filtre de date.
+    *   **Interagissez avec le filtre de date** comme vous le faisiez : réinitialisez, puis sélectionnez la plage `03/02/2026` au `04/02/2026`.
+    *   Lorsque vous appliquez le filtre, l'exécution de votre code devrait s'arrêter aux points d'arrêt que vous avez définis.
+    *   **À chaque arrêt, examinez attentivement les variables** dans le panneau "Variables". Vérifiez si `finalStartDate`, `finalEndDate`, et surtout `startOfDayUtc` et `endOfDayUtc` contiennent les valeurs que vous attendez.
+
+**Étape 6 : Examiner la console de débogage de VS Code**
+*   Les messages que vous avez ajoutés avec `debugPrint` (comme `Filtering LOCAL GTE created_at:`) apparaîtront dans le panneau "Console de débogage" de VS Code. C'est là que vous verrez les logs que nous n'arrivions pas à capturer.
+
+En suivant attentivement ces étapes, vous pourrez voir précisément quelles dates sont générées, comment elles sont transformées, et quelle est la liste des achats avant et après le filtrage côté client. Cela vous permettra de confirmer si la logique que j'ai implémentée est correctement exécutée et si le problème vient des valeurs des dates, ou d'une autre étape du processus.
+
+N'hésitez pas à me poser des questions si une étape vous semble peu claire.

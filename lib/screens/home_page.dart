@@ -49,10 +49,32 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _handlePurchaseSubmissionSuccess(bool isEditing) {
+    debugPrint('HomePage: _handlePurchaseSubmissionSuccess called with isEditing: $isEditing');
+    if (mounted) {
+      debugPrint('HomePage: _handlePurchaseSubmissionSuccess: Navigator.of(context).canPop(): ${Navigator.of(context).canPop()}');
+      if (Navigator.of(context).canPop()) { // Check if there's a screen to pop
+        Navigator.of(context).pop(); // Pop the PurchaseFormScreen if it was pushed
+        debugPrint('HomePage: _handlePurchaseSubmissionSuccess: PurchaseFormScreen popped.');
+      }
+
+      setState(() {
+        final oldIndex = _currentIndex;
+        if (isEditing) {
+          _currentIndex = 2; // Navigate to History
+          debugPrint('HomePage: _handlePurchaseSubmissionSuccess: Changing _currentIndex from $oldIndex to $_currentIndex (History)');
+        } else {
+          _currentIndex = 0; // Navigate to Dashboard
+          debugPrint('HomePage: _handlePurchaseSubmissionSuccess: Changing _currentIndex from $oldIndex to $_currentIndex (Dashboard)');
+        }
+      });
+    }
+  }
+
   void _buildNavItems() {
     _screens = [
       DashboardScreen(navigateToHistory: () => _navigateTo(2)),
-      const PurchaseFormScreen(),
+      PurchaseFormScreen(onSubmissionSuccess: _handlePurchaseSubmissionSuccess),
       const HistoryScreen(),
       if (_isAdmin) const AdminDashboardScreen(),
     ];

@@ -3,7 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provisions/models/purchase.dart';
 import 'package:provisions/models/library_item.dart';
 import 'package:provisions/models/supplier.dart';
-import '../widgets/filter_panel.dart'; // Import FilterState
+import 'package:intl/intl.dart';
+import '../widgets/filter_panel.dart';
 
 class DatabaseService {
   DatabaseService._privateConstructor();
@@ -11,54 +12,89 @@ class DatabaseService {
 
   final _supabase = Supabase.instance.client;
 
+  PostgrestTransformBuilder<List<Map<String, dynamic>>> _applyFiltersAndSorting(
+    PostgrestFilterBuilder<List<Map<String, dynamic>>> initialQuery,
+    FilterState filters, {
+    bool includeUserIdFilter = true,
+  }) {
+    // Start with the initial query. This will remain a PostgrestFilterBuilder until .order() is called.
+    PostgrestFilterBuilder<List<Map<String, dynamic>>> filterableQuery = initialQuery;
+
+    if (includeUserIdFilter) {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId != null) {
+        filterableQuery = filterableQuery.eq('user_id', userId);
+      }
+    }
+
+    if (filters.searchQuery.isNotEmpty) {
+      final queryText = filters.searchQuery.toLowerCase();
+      filterableQuery = filterableQuery.or(
+        'ref_da.ilike.*$queryText*,'
+        'demander.ilike.*$queryText*,'
+        'client_name.ilike.*$queryText*',
+      );
+    }
+
+    if (filters.year != null) {
+      final startOfYear = DateTime(filters.year!, 1, 1);
+      final endOfYear = DateTime(filters.year!, 12, 31, 23, 59, 59);
+      filterableQuery = filterableQuery
+          .gte('date', startOfYear.toIso8601String())
+          .lte('date', endOfYear.toIso8601String());
+    }
+
+    if (filters.month != null) {
+      if (filters.year != null) {
+        final startOfMonth = DateTime(filters.year!, filters.month!, 1);
+        final endOfMonth = DateTime(filters.year!, filters.month! + 1, 0, 23, 59, 59);
+        filterableQuery = filterableQuery
+            .gte('date', startOfMonth.toIso8601String())
+            .lte('date', endOfMonth.toIso8601String());
+      } else {
+        debugPrint('Warning: Month filter applied without year filter. Ignoring month filter.');
+      }
+    }
+
+    if (filters.startDate != null) {
+      final startOfDay = DateTime(
+          filters.startDate!.year, filters.startDate!.month, filters.startDate!.day, 0, 0, 0);
+      filterableQuery = filterableQuery.gte('date', startOfDay.toIso8601String());
+    }
+
+    if (filters.endDate != null) {
+      final endOfDay = DateTime(
+          filters.endDate!.year, filters.endDate!.month, filters.endDate!.day, 23, 59, 59);
+      filterableQuery = filterableQuery.lte('date', endOfDay.toIso8601String());
+    }
+
+    // Now, apply ordering. This operation changes the type of the builder
+    // from PostgrestFilterBuilder to PostgrestTransformBuilder.
+    // We return this transformed builder.
+    switch (filters.sortOption) {
+      case SortOption.dateDesc:
+        return filterableQuery.order('date', ascending: false);
+      case SortOption.dateAsc:
+        return filterableQuery.order('date', ascending: true);
+      case SortOption.amountDesc:
+        debugPrint('Warning: Attempting server-side sorting by grand_total (descending).');
+        return filterableQuery.order('grand_total', ascending: false); // Assuming 'grand_total' exists in the database.
+      case SortOption.amountAsc:
+        debugPrint('Warning: Attempting server-side sorting by grand_total (ascending).');
+        return filterableQuery.order('grand_total', ascending: true); // Assuming 'grand_total' exists in the database.
+    }
+  }
+
   Future<List<Purchase>> getAllPurchases(FilterState filters) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return [];
 
     try {
-      var query = _supabase
-          .from('purchases')
-          .select('*, purchase_items(*, suppliers(*))')
-          .eq('user_id', userId);
+      var queryBuilder = _supabase.from('purchases').select('*, purchase_items(*, suppliers(*))');
 
-      // Apply search query filter
-      if (filters.searchQuery.isNotEmpty) {
-        // Supabase doesn't directly support ILIKE across multiple related columns easily
-        // This example applies to 'demander' column, assuming it's a primary search target.
-        // For broader search, consider Supabase's full-text search features or a custom RPC.
-        query = query.ilike('demander', '%${filters.searchQuery}%');
-      }
+      var query = _applyFiltersAndSorting(queryBuilder, filters, includeUserIdFilter: true);
 
-      // Apply date filters
-      DateTime? finalStartDate = filters.startDate;
-      DateTime? finalEndDate = filters.endDate;
-
-      // If no specific startDate/endDate are provided, try to derive from year/month
-      if (finalStartDate == null && finalEndDate == null && filters.year != null) {
-        finalStartDate = DateTime(filters.year!, filters.month ?? 1, 1);
-        finalEndDate = (filters.month != null)
-            ? DateTime(filters.year!, filters.month! + 1, 0, 23, 59, 59)
-            : DateTime(filters.year! + 1, 1, 0, 23, 59, 59);
-      }
-
-      if (finalStartDate != null) {
-        final startOfDayUtc = DateTime.utc(finalStartDate.year, finalStartDate.month, finalStartDate.day);
-        debugPrint('Filtering GTE date: ${startOfDayUtc.toIso8601String()}');
-        query = query.gte('date', startOfDayUtc.toIso8601String());
-      }
-      if (finalEndDate != null) {
-        final nextDayUtc = DateTime.utc(finalEndDate.year, finalEndDate.month, finalEndDate.day)
-            .add(const Duration(days: 1));
-        debugPrint('Filtering LT date: ${nextDayUtc.toIso8601String()}');
-        query = query.lt('date', nextDayUtc.toIso8601String());
-      }
-
-      // Apply sorting
-      // NOTE: Sorting by 'amount' (grandTotal) client-side as it's a computed field.
-      // To sort by amount server-side, grandTotal would need to be a stored column or accessible via a Supabase view/function.
-
-      final data = await query.order('date',
-          ascending: filters.sortOption == SortOption.dateAsc);
+      final data = await query;
       final purchases = data.map((p) => Purchase.fromMap(p)).toList();
 
       // Client-side sort for grandTotal if requested (since server-side is harder for computed grandTotal)
@@ -75,14 +111,21 @@ class DatabaseService {
     }
   }
 
-  Future<List<Purchase>> getAllPurchasesForAdmin() async {
+  Future<List<Purchase>> getAllPurchasesForAdmin(FilterState filters) async {
     try {
-      final data = await _supabase
-          .from('purchases')
-          .select('*, purchase_items(*, suppliers(*))')
-          .order('created_at', ascending: false);
+      var queryBuilder = _supabase.from('purchases').select('*, purchase_items(*, suppliers(*))');
 
+      var query = _applyFiltersAndSorting(queryBuilder, filters, includeUserIdFilter: false);
+
+      final data = await query;
       final purchases = data.map((p) => Purchase.fromMap(p)).toList();
+
+      // Client-side sort for grandTotal if requested (since server-side is harder for computed grandTotal)
+      if (filters.sortOption == SortOption.amountAsc) {
+        purchases.sort((a, b) => a.grandTotal.compareTo(b.grandTotal));
+      } else if (filters.sortOption == SortOption.amountDesc) {
+        purchases.sort((a, b) => b.grandTotal.compareTo(a.grandTotal));
+      }
       return purchases;
     } catch (e) {
       debugPrint("Erreur lors de la récupération de tous les achats (admin): $e");
@@ -196,9 +239,19 @@ class DatabaseService {
         await _supabase.from('purchase_items').insert(itemsToInsert);
       }
 
-      return purchase;
+      final fetchedPurchaseData = await _supabase
+          .from('purchases')
+          .select('*, purchase_items(*, suppliers(*))')
+          .eq('id', purchase.id!)
+          .single();
+
+      return Purchase.fromMap(fetchedPurchaseData);
     } catch (e) {
-      debugPrint("Erreur lors de la mise à jour de l'achat: $e");
+      if (e is PostgrestException) {
+        debugPrint("PostgrestException lors de la mise à jour de l'achat: ${e.message}, Code: ${e.code}, Details: ${e.details}");
+      } else {
+        debugPrint("Erreur inconnue lors de la mise à jour de l'achat: $e");
+      }
       rethrow;
     }
   }

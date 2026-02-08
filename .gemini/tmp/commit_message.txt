@@ -1,0 +1,7 @@
+fix: Re-add .env to pubspec.yaml assets for flutter_dotenv
+
+This commit re-adds the '.env' file to the assets section of pubspec.yaml. This is necessary for the 'flutter_dotenv' package to correctly locate and load environment variables at runtime, especially during web builds.
+
+The previous removal was an attempt to resolve a build error, but it inadvertently caused the application to fail at runtime when trying to access the (now missing) asset.
+
+For successful remote builds and deployments, ensure that a '.env' file (even an empty one, or one with placeholder values) is present in the project root of the remote build environment. This file should remain untracked by Git for security best practices.

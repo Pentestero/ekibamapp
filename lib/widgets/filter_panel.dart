@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:provisions/providers/purchase_provider.dart';
 
 // Data classes and enums for managing filter state
 enum SortOption { dateDesc, dateAsc, amountDesc, amountAsc }
@@ -48,7 +50,7 @@ class FilterState {
 class FilterPanel extends StatefulWidget {
   final FilterState initialFilters;
   final List<int> availableYears;
-  final Function(FilterState) onFilterChanged;
+  final void Function(FilterState newFilters) onFilterChanged;
 
   const FilterPanel({
     super.key,

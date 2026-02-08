@@ -32,7 +32,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PurchaseProvider>().loadAllPurchases();
+      context.read<PurchaseProvider>().loadAllPurchases(_filterState);
     });
 
     _contentController = AnimationController(
@@ -51,6 +51,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   }
 
   void _showFilterPanel() {
+    debugPrint('AdminDashboardScreen: _showFilterPanel opened. Current _filterState: ${_filterState.searchQuery}, Year: ${_filterState.year}, Month: ${_filterState.month}');
     final provider = context.read<PurchaseProvider>();
     final availableYears = provider.allPurchases.map((p) => p.date.year).toSet().toList();
     availableYears.sort((a, b) => b.compareTo(a));
@@ -66,45 +67,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             setState(() {
               _filterState = newFilters;
             });
+            debugPrint('AdminDashboardScreen: _showFilterPanel: Filter changed to: ${newFilters.searchQuery}, Year: ${newFilters.year}, Month: ${newFilters.month}');
+            provider.loadAllPurchases(newFilters); // Explicit call
           },
         );
       },
-    );
+    ).then((_) {
+      if (mounted) {
+        debugPrint('AdminDashboardScreen: _showFilterPanel closed. Reloading all purchases with _filterState: ${_filterState.searchQuery}, Year: ${_filterState.year}, Month: ${_filterState.month}');
+        provider.loadAllPurchases(_filterState); // Explicit call
+      }
+    });
   }
 
-  List<Purchase> _getFilteredAndSortedPurchases(List<Purchase> allPurchases) {
-    List<Purchase> filteredList = List.from(allPurchases);
 
-    if (_filterState.searchQuery.isNotEmpty) {
-      final query = _filterState.searchQuery.toLowerCase();
-      filteredList = filteredList.where((p) =>
-          (p.refDA?.toLowerCase().contains(query) ?? false) ||
-          (p.demander.toLowerCase().contains(query)) ||
-          (p.clientName?.toLowerCase().contains(query) ?? false)
-      ).toList();
-    }
-    if (_filterState.year != null) {
-      filteredList = filteredList.where((p) => p.date.year == _filterState.year).toList();
-    }
-    if (_filterState.month != null) {
-      filteredList = filteredList.where((p) => p.date.month == _filterState.month).toList();
-    }
-    switch (_filterState.sortOption) {
-      case SortOption.dateAsc:
-        filteredList.sort((a, b) => a.date.compareTo(b.date));
-        break;
-      case SortOption.dateDesc:
-        filteredList.sort((a, b) => b.date.compareTo(a.date));
-        break;
-      case SortOption.amountAsc:
-        filteredList.sort((a, b) => a.grandTotal.compareTo(b.grandTotal));
-        break;
-      case SortOption.amountDesc:
-        filteredList.sort((a, b) => b.grandTotal.compareTo(a.grandTotal));
-        break;
-    }
-    return filteredList;
-  }
   
   void _toggleSelectionMode() {
     setState(() {
@@ -125,9 +101,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('AdminDashboardScreen: build method called. Current _filterState: ${_filterState.searchQuery}, Year: ${_filterState.year}, Month: ${_filterState.month}');
     final currencyFormat = NumberFormat('#,##0', 'fr_FR');
     final provider = context.watch<PurchaseProvider>();
-    final filteredPurchases = _getFilteredAndSortedPurchases(provider.allPurchases);
+    final filteredPurchases = provider.allPurchases; // Now directly use pre-filtered list
     
     final isAllSelected = _isSelectionMode &&
         filteredPurchases.isNotEmpty &&
@@ -145,7 +122,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           : FadeTransition(
               opacity: _contentFadeAnimation,
               child: RefreshIndicator(
-                onRefresh: () => provider.loadAllPurchases(),
+                onRefresh: () => provider.loadAllPurchases(_filterState), // Pass current filter state
                 child: Column(
                   children: [
                     _buildFilterChipsBar(),
@@ -207,7 +184,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       ),
       IconButton(
         icon: const Icon(Icons.refresh),
-        onPressed: () => provider.loadAllPurchases(),
+        onPressed: () => provider.loadAllPurchases(_filterState), // Pass current filter state
       ),
     ];
   }
@@ -223,6 +200,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     }
     if (_filterState.month != null) {
       chips.add(Chip(label: Text('Mois: ${_filterState.month != null ? DateFormat.MMMM('fr_FR').format(DateTime(0, _filterState.month!)) : ''}'), onDeleted: () => setState(() => _filterState = _filterState.copyWith(resetMonth: true))));
+    }
+    if (_filterState.startDate != null) {
+      chips.add(Chip(label: Text('Date début: ${DateFormat('dd/MM/yyyy').format(_filterState.startDate!)}'), onDeleted: () => setState(() => _filterState = _filterState.copyWith(resetStartDate: true))));
+    }
+    if (_filterState.endDate != null) {
+      chips.add(Chip(label: Text('Date fin: ${DateFormat('dd/MM/yyyy').format(_filterState.endDate!)}'), onDeleted: () => setState(() => _filterState = _filterState.copyWith(resetEndDate: true))));
     }
     if (chips.isEmpty) return const SizedBox.shrink();
     return Container(
