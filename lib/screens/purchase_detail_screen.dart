@@ -116,17 +116,16 @@ class PurchaseDetailScreen extends StatelessWidget {
                       Text('Catégorie: ${item.category}', style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 4),
                       Text('Produit: $productName'),
-                      if (item.expenseDate != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text(
-                            'Date de dépense: ${DateFormat('dd/MM/yyyy').format(item.expenseDate!)}',
-                            style: TextStyle(
-                              fontStyle: FontStyle.italic,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          'Date de dépense: ${DateFormat('dd/MM/yyyy').format(item.expenseDate)}',
+                          style: TextStyle(
+                            fontStyle: FontStyle.italic,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
+                      ),
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -173,7 +172,7 @@ class PurchaseDetailScreen extends StatelessWidget {
                   cells: [
                     DataCell(Text(item.category)),
                     DataCell(Text(productName)),
-                    DataCell(Text(item.expenseDate != null ? DateFormat('dd/MM/yyyy').format(item.expenseDate!) : '')), // Updated content
+                    DataCell(Text(DateFormat('dd/MM/yyyy').format(item.expenseDate))), // Updated content
                     DataCell(Text(item.quantity.toStringAsFixed(1))),
                     DataCell(Text(currencyFormat.format(item.unitPrice))),
                     DataCell(Text(currencyFormat.format(item.total))),

@@ -68,7 +68,7 @@ class ExcelService {
           TextCellValue(purchase.date.month.toString()),
           TextCellValue(purchase.refDA ?? ''),
           TextCellValue(DateFormat('dd/MM/yyyy').format(purchase.date)),
-          TextCellValue(item.expenseDate != null ? DateFormat('dd/MM/yyyy').format(item.expenseDate!) : ''),
+          TextCellValue(DateFormat('dd/MM/yyyy').format(item.expenseDate)),
           TextCellValue(purchase.comments),
           IntCellValue(item.unitPrice),
           DoubleCellValue(item.quantity),

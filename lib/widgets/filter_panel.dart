@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
-import 'package:provisions/providers/purchase_provider.dart';
 
 // Data classes and enums for managing filter state
 enum SortOption { dateDesc, dateAsc, amountDesc, amountAsc }
@@ -140,7 +138,7 @@ class _FilterPanelState extends State<FilterPanel> {
       context: context,
       initialDate: (isStartDate ? _currentFilters.startDate : _currentFilters.endDate) ?? DateTime.now(),
       firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
+      lastDate: DateTime.now(),
     );
     if (picked != null) {
       if (isStartDate) {

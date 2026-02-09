@@ -14,7 +14,7 @@ class PurchaseItem {
   final int unitPrice;
   final int paymentFee;
   final String? comment;
-  final DateTime? expenseDate; // Replaced choiceDate with expenseDate
+  final DateTime expenseDate; // Replaced choiceDate with expenseDate
   final DateTime? createdAt;
   final DateTime? modifiedAt;
 
@@ -34,7 +34,7 @@ class PurchaseItem {
     this.paymentFee = 0,
     this.supplierName,
     this.comment,
-    this.expenseDate, // Updated in constructor
+    required this.expenseDate, // Updated in constructor
     DateTime? createdAt,
     DateTime? modifiedAt,
   }) : _localId = localId ?? DateTime.now().millisecondsSinceEpoch,
@@ -59,7 +59,7 @@ class PurchaseItem {
       'unit_price': unitPrice,
       'payment_fee': paymentFee,
       'comment': comment,
-      'expense_date': expenseDate?.toIso8601String(), // Updated in toMap
+      'expense_date': expenseDate.toIso8601String(), // Updated in toMap
       'created_at': createdAt?.toIso8601String(),
       'modified_at': modifiedAt?.toIso8601String(),
     };
@@ -83,9 +83,9 @@ class PurchaseItem {
       paymentFee: (map['payment_fee'] as num?)?.toInt() ?? 0,
       comment: map['comment'] as String?,
       supplierName: supplierName,
-      expenseDate: map['expense_date'] == null // Updated in fromMap
-          ? null
-          : DateTime.parse(map['expense_date'] as String),
+      expenseDate: map['expense_date'] == null
+          ? DateTime.now() // Fallback for existing null values in DB
+          : DateTime.parse(map['expense_date'] as String), // Updated in fromMap
       createdAt: map['created_at'] == null
           ? null
           : DateTime.parse(map['created_at'] as String),

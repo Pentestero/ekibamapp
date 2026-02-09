@@ -16,7 +16,7 @@ class PdfService {
     final italicFont = await PdfGoogleFonts.openSansItalic();
 
     final ByteData logoByteData =
-        await rootBundle.load('assets/images/EKIBAM.jpg');
+        await rootBundle.load('images/EKIBAM.jpg');
     final Uint8List logoBytes = logoByteData.buffer.asUint8List();
 
     pdf.addPage(
@@ -186,7 +186,7 @@ class PdfService {
             pw.Padding(
               padding: const pw.EdgeInsets.all(4),
               child: pw.Text(
-                item.expenseDate != null ? DateFormat('dd/MM/yy').format(item.expenseDate!) : '',
+                DateFormat('dd/MM/yy').format(item.expenseDate),
                 style: const pw.TextStyle(fontSize: 8),
               ),
             ),

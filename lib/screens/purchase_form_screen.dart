@@ -602,6 +602,30 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       return;
     }
 
+    // New validation for expenseDate in purchase items
+    final bool anyItemMissingExpenseDate =
+        provider.itemsBuilder.any((item) => item.expenseDate == null);
+
+    if (anyItemMissingExpenseDate) {
+      final errorColor = Theme.of(context).colorScheme.error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onError),
+              const SizedBox(width: 8),
+              const Text('Veuillez sélectionner une date de dépense pour chaque article.'),
+            ],
+          ),
+          backgroundColor: errorColor,
+          duration: const Duration(seconds: 6),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -678,7 +702,9 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
               children: [
                 Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onError),
                 const SizedBox(width: 8),
-                Text(errorMessage),
+                Expanded(
+                  child: Text(errorMessage),
+                ),
               ],
             ),
             backgroundColor: errorColor,
@@ -839,19 +865,9 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
               ),
               leading: Icon(Icons.calendar_today, color: Theme.of(context).colorScheme.primary),
               title: Text(
-                item.expenseDate == null
-                    ? 'Ajouter une date de dépense' // Renamed label
-                    : 'Date de dépense: ${DateFormat('dd/MM/yyyy').format(item.expenseDate!)}', // Renamed label
+                'Date de dépense: ${DateFormat('dd/MM/yyyy').format(item.expenseDate)}', // Renamed label
               ),
-              trailing: item.expenseDate != null
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      tooltip: 'Effacer la date',
-                      onPressed: () {
-                        provider.updateItem(widget.index, clearExpenseDate: true); // Updated to clearExpenseDate
-                      },
-                    )
-                  : null,
+              trailing: null,
               onTap: () => _selectExpenseDate(context), // Updated function call
             ),
             const SizedBox(height: 12),
@@ -1005,7 +1021,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                       TextFormField(
                         controller: _priceController,
                         decoration: InputDecoration(
-                            labelText: 'Prix Unitaire', suffixText: 'XAF', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
+                            labelText: 'Prix Unitaire (Requis)', suffixText: 'XAF', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly
@@ -1013,6 +1029,12 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                         onChanged: (value) {
                           final price = int.tryParse(value) ?? 0;
                           context.read<PurchaseProvider>().updateItem(widget.index, unitPrice: price);
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty || int.tryParse(value) == 0) {
+                            return 'Le prix unitaire est requis et doit être supérieur à zéro.';
+                          }
+                          return null;
                         },
                       ),
                     ],

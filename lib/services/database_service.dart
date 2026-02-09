@@ -1,3 +1,4 @@
+import 'package:provisions/models/purchase_item.dart'; // NEW IMPORT
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provisions/models/purchase.dart';
@@ -36,53 +37,26 @@ class DatabaseService {
       );
     }
 
-    if (filters.year != null) {
-      final startOfYear = DateTime(filters.year!, 1, 1);
-      final endOfYear = DateTime(filters.year!, 12, 31, 23, 59, 59);
-      filterableQuery = filterableQuery
-          .gte('date', startOfYear.toIso8601String())
-          .lte('date', endOfYear.toIso8601String());
-    }
-
-    if (filters.month != null) {
-      if (filters.year != null) {
-        final startOfMonth = DateTime(filters.year!, filters.month!, 1);
-        final endOfMonth = DateTime(filters.year!, filters.month! + 1, 0, 23, 59, 59);
-        filterableQuery = filterableQuery
-            .gte('date', startOfMonth.toIso8601String())
-            .lte('date', endOfMonth.toIso8601String());
-      } else {
-        debugPrint('Warning: Month filter applied without year filter. Ignoring month filter.');
-      }
-    }
-
-    if (filters.startDate != null) {
-      final startOfDay = DateTime(
-          filters.startDate!.year, filters.startDate!.month, filters.startDate!.day, 0, 0, 0);
-      filterableQuery = filterableQuery.gte('date', startOfDay.toIso8601String());
-    }
-
-    if (filters.endDate != null) {
-      final endOfDay = DateTime(
-          filters.endDate!.year, filters.endDate!.month, filters.endDate!.day, 23, 59, 59);
-      filterableQuery = filterableQuery.lte('date', endOfDay.toIso8601String());
-    }
-
     // Now, apply ordering. This operation changes the type of the builder
     // from PostgrestFilterBuilder to PostgrestTransformBuilder.
     // We return this transformed builder.
     switch (filters.sortOption) {
-      case SortOption.dateDesc:
-        return filterableQuery.order('date', ascending: false);
-      case SortOption.dateAsc:
-        return filterableQuery.order('date', ascending: true);
       case SortOption.amountDesc:
         debugPrint('Warning: Attempting server-side sorting by grand_total (descending).');
         return filterableQuery.order('grand_total', ascending: false); // Assuming 'grand_total' exists in the database.
       case SortOption.amountAsc:
         debugPrint('Warning: Attempting server-side sorting by grand_total (ascending).');
         return filterableQuery.order('grand_total', ascending: true); // Assuming 'grand_total' exists in the database.
+      case SortOption.dateDesc: // Fallback to id ordering if dateDesc is selected
+      case SortOption.dateAsc: // Fallback to id ordering if dateAsc is selected
+      default:
+        return filterableQuery.order('id', ascending: false); // Default ordering
     }
+  }
+
+  String? _formatDateForRpc(DateTime? date) {
+    if (date == null) return null;
+    return date.toIso8601String();
   }
 
   Future<List<Purchase>> getAllPurchases(FilterState filters) async {
@@ -90,14 +64,60 @@ class DatabaseService {
     if (userId == null) return [];
 
     try {
-      var queryBuilder = _supabase.from('purchases').select('*, purchase_items(*, suppliers(*))');
+      // Handle year/month filters or specific start/end dates
+      DateTime? effectiveStartDate;
+      DateTime? effectiveEndDate;
 
-      var query = _applyFiltersAndSorting(queryBuilder, filters, includeUserIdFilter: true);
+      if (filters.year != null) {
+        effectiveStartDate = DateTime(filters.year!, 1, 1);
+        effectiveEndDate = DateTime(filters.year!, 12, 31, 23, 59, 59);
 
-      final data = await query;
-      final purchases = data.map((p) => Purchase.fromMap(p)).toList();
+        if (filters.month != null) {
+          effectiveStartDate = DateTime(filters.year!, filters.month!, 1);
+          effectiveEndDate = DateTime(filters.year!, filters.month! + 1, 0, 23, 59, 59);
+        }
+      }
+      
+      // Override with specific startDate/endDate if provided
+      if (filters.startDate != null) {
+        effectiveStartDate = DateTime(filters.startDate!.year, filters.startDate!.month, filters.startDate!.day, 0, 0, 0);
+      }
+      if (filters.endDate != null) {
+        effectiveEndDate = DateTime(filters.endDate!.year, filters.endDate!.month, filters.endDate!.day, 23, 59, 59);
+      }
 
-      // Client-side sort for grandTotal if requested (since server-side is harder for computed grandTotal)
+      // Ensure all RPC parameters are always present, even if null, for function matching
+      final rpcParams = <String, dynamic>{
+        'user_id_param': userId,
+        'search_query_param': filters.searchQuery.isNotEmpty ? filters.searchQuery : null,
+        'start_date_param': _formatDateForRpc(effectiveStartDate),
+        'end_date_param': _formatDateForRpc(effectiveEndDate),
+        'sort_option_param': filters.sortOption.toString().split('.').last,
+      };
+
+      final List<dynamic> rpcResult = await _supabase.rpc(
+        'get_filtered_purchases_by_item_date',
+        params: rpcParams,
+      );
+      
+      // rpcResult is a list of dynamic maps (JSON objects) where each map is a Purchase record
+      List<Purchase> purchases = rpcResult.map((p) => Purchase.fromMap(p as Map<String, dynamic>)).toList();
+
+      // IMPORTANT: The RPC only returns purchase headers. We need to fetch items separately.
+      // This is an N+1 query problem, a more advanced RPC could return purchases with nested items.
+      for (var purchase in purchases) {
+        if (purchase.id != null) {
+          final itemsData = await _supabase
+              .from('purchase_items')
+              .select('*, suppliers(*)')
+              .eq('purchase_id', purchase.id!)
+              .order('id', ascending: true); // Order items by ID for consistency
+          purchase.items = itemsData.map((itemMap) => PurchaseItem.fromMap(itemMap as Map<String, dynamic>)).toList();
+        }
+      }
+
+      // Client-side sort for grandTotal if requested (since it's a calculated field in Dart)
+      // The SQL function also attempts to sort by grand_total, but this ensures Dart-side consistency
       if (filters.sortOption == SortOption.amountAsc) {
         purchases.sort((a, b) => a.grandTotal.compareTo(b.grandTotal));
       } else if (filters.sortOption == SortOption.amountDesc) {
@@ -106,29 +126,75 @@ class DatabaseService {
 
       return purchases;
     } catch (e) {
-      debugPrint("Erreur lors de la récupération des achats filtrés: $e");
+      debugPrint("Erreur lors de la récupération des achats filtrés via RPC: $e");
       rethrow;
     }
   }
 
   Future<List<Purchase>> getAllPurchasesForAdmin(FilterState filters) async {
+    final userId = _supabase.auth.currentUser?.id; // Admin user ID
+    if (userId == null) return []; // Should not happen for an authenticated admin
+
     try {
-      var queryBuilder = _supabase.from('purchases').select('*, purchase_items(*, suppliers(*))');
+      // Handle year/month filters or specific start/end dates
+      DateTime? effectiveStartDate;
+      DateTime? effectiveEndDate;
 
-      var query = _applyFiltersAndSorting(queryBuilder, filters, includeUserIdFilter: false);
+      if (filters.year != null) {
+        effectiveStartDate = DateTime(filters.year!, 1, 1);
+        effectiveEndDate = DateTime(filters.year!, 12, 31, 23, 59, 59);
 
-      final data = await query;
-      final purchases = data.map((p) => Purchase.fromMap(p)).toList();
+        if (filters.month != null) {
+          effectiveStartDate = DateTime(filters.year!, filters.month!, 1);
+          effectiveEndDate = DateTime(filters.year!, filters.month! + 1, 0, 23, 59, 59);
+        }
+      }
+      
+      // Override with specific startDate/endDate if provided
+      if (filters.startDate != null) {
+        effectiveStartDate = DateTime(filters.startDate!.year, filters.startDate!.month, filters.startDate!.day, 0, 0, 0);
+      }
+      if (filters.endDate != null) {
+        effectiveEndDate = DateTime(filters.endDate!.year, filters.endDate!.month, filters.endDate!.day, 23, 59, 59);
+      }
 
-      // Client-side sort for grandTotal if requested (since server-side is harder for computed grandTotal)
+      // Ensure all RPC parameters are always present, even if null, for function matching
+      final rpcParams = <String, dynamic>{
+        'user_id_param': null, // Pass null for admin to see all purchases
+        'search_query_param': filters.searchQuery.isNotEmpty ? filters.searchQuery : null,
+        'start_date_param': _formatDateForRpc(effectiveStartDate),
+        'end_date_param': _formatDateForRpc(effectiveEndDate),
+        'sort_option_param': filters.sortOption.toString().split('.').last,
+      };
+
+
+      final List<dynamic> rpcResult = await _supabase.rpc(
+        'get_filtered_purchases_by_item_date',
+        params: rpcParams,
+      );
+      
+      List<Purchase> purchases = rpcResult.map((p) => Purchase.fromMap(p as Map<String, dynamic>)).toList();
+
+      for (var purchase in purchases) {
+        if (purchase.id != null) {
+          final itemsData = await _supabase
+              .from('purchase_items')
+              .select('*, suppliers(*)')
+              .eq('purchase_id', purchase.id!)
+              .order('id', ascending: true);
+          purchase.items = itemsData.map((itemMap) => PurchaseItem.fromMap(itemMap as Map<String, dynamic>)).toList();
+        }
+      }
+
       if (filters.sortOption == SortOption.amountAsc) {
         purchases.sort((a, b) => a.grandTotal.compareTo(b.grandTotal));
       } else if (filters.sortOption == SortOption.amountDesc) {
         purchases.sort((a, b) => b.grandTotal.compareTo(a.grandTotal));
       }
+
       return purchases;
     } catch (e) {
-      debugPrint("Erreur lors de la récupération de tous les achats (admin): $e");
+      debugPrint("Erreur lors de la récupération de tous les achats (admin) via RPC: $e");
       rethrow;
     }
   }
@@ -172,7 +238,7 @@ class DatabaseService {
           'unit_price': item.unitPrice,
           'payment_fee': item.paymentFee,
           'comment': item.comment,
-          'expense_date': item.expenseDate?.toIso8601String(),
+          'expense_date': item.expenseDate.toIso8601String(),
           'created_at': item.createdAt?.toIso8601String(),
           'modified_at': item.modifiedAt?.toIso8601String(),
         }).toList();
@@ -231,7 +297,7 @@ class DatabaseService {
           'unit_price': item.unitPrice,
           'payment_fee': item.paymentFee,
           'comment': item.comment,
-          'expense_date': item.expenseDate?.toIso8601String(),
+          'expense_date': item.expenseDate.toIso8601String(),
           'created_at': item.createdAt?.toIso8601String(),
           'modified_at': item.modifiedAt?.toIso8601String(),
         }).toList();
@@ -429,6 +495,7 @@ class DatabaseService {
           .select('user_id')
           .eq('user_id', userId)
           .single();
+      // ignore: unnecessary_null_comparison
       return data != null; // If a row is returned, the user is an admin
     } catch (e) {
       // If no row is found, a PostgrestException might be thrown (no rows)

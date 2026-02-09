@@ -107,6 +107,15 @@ Cette version introduit de nouvelles fonctionnalités majeures et apporte plusie
     *   **Corrections de Compilation :** Résolution des erreurs de compilation liées au formatage des chaînes de caractères multilignes (`subtitle` des `ListTile`) dans les widgets de la bibliothèque d'articles.
     *   **Optimisation de la Mise à Jour des Articles :** Correction d'un bug dans le `PurchaseProvider` où le champ "commentaire" d'un article n'était pas correctement préservé lors des mises à jour.
 
+### 9 Février 2026
+
+Cette version apporte les corrections de bugs suivantes :
+
+-   **Corrections de Bugs :**
+    *   Résolution de l'erreur `RenderFlex overflow` dans `PurchaseFormScreen` pour améliorer la stabilité de l'interface utilisateur.
+    *   Correction de l'erreur de chargement des assets pour `EKIBAM.jpg` en ajustant les chemins redondants dans `pdf_service.dart` et `auth_screen.dart`.
+    *   Correction des problèmes d'ordre et de nommage des paramètres pour les fonctions RPC de la base de données `get_filtered_purchases_by_item_date` et `create_purchase_with_ref_da` afin d'assurer une récupération correcte des données et la création des achats.
+
 ### Version 1.4.0 - Janvier 2026
 
 Cette version apporte une refonte majeure de l'expérience utilisateur, des fonctionnalités avancées de filtrage/export et corrige des bugs critiques.

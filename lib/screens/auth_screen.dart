@@ -59,7 +59,7 @@ class _AuthScreenState extends State<AuthScreen>
                       color: Theme.of(context).colorScheme.primaryContainer,
                       image: const DecorationImage(
                         image: AssetImage(
-                            'assets/images/EKIBAM.jpg'), // Use your app's background image
+                            'images/EKIBAM.jpg'), // Use your app's background image
                         fit: BoxFit.cover,
                         opacity: 0.3,
                       ),

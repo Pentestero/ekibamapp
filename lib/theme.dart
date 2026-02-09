@@ -91,15 +91,15 @@ ThemeData _buildTheme(AppPalette palette, Brightness brightness) {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         elevation: 3, // Add some elevation
       ).copyWith(
-        overlayColor: MaterialStateProperty.resolveWith<Color?>(
-          (Set<MaterialState> states) {
-            if (states.contains(MaterialState.hovered)) {
+        overlayColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) {
+            if (states.contains(WidgetState.hovered)) {
               return cs.onPrimary.withOpacity(0.08); // Subtle hover effect
             }
-            if (states.contains(MaterialState.focused)) {
+            if (states.contains(WidgetState.focused)) {
               return cs.onPrimary.withOpacity(0.12); // Subtle focus effect
             }
-            if (states.contains(MaterialState.pressed)) {
+            if (states.contains(WidgetState.pressed)) {
               return cs.onPrimary.withOpacity(0.12); // Subtle pressed effect
             }
             return null; // Defer to the widget's default.
@@ -115,15 +115,15 @@ ThemeData _buildTheme(AppPalette palette, Brightness brightness) {
         side: BorderSide(color: cs.primary), // Border color
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ).copyWith(
-        overlayColor: MaterialStateProperty.resolveWith<Color?>(
-          (Set<MaterialState> states) {
-            if (states.contains(MaterialState.hovered)) {
+        overlayColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) {
+            if (states.contains(WidgetState.hovered)) {
               return cs.primary.withOpacity(0.08);
             }
-            if (states.contains(MaterialState.focused)) {
+            if (states.contains(WidgetState.focused)) {
               return cs.primary.withOpacity(0.12);
             }
-            if (states.contains(MaterialState.pressed)) {
+            if (states.contains(WidgetState.pressed)) {
               return cs.primary.withOpacity(0.12);
             }
             return null;
@@ -138,15 +138,15 @@ ThemeData _buildTheme(AppPalette palette, Brightness brightness) {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ).copyWith(
-        overlayColor: MaterialStateProperty.resolveWith<Color?>(
-          (Set<MaterialState> states) {
-            if (states.contains(MaterialState.hovered)) {
+        overlayColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) {
+            if (states.contains(WidgetState.hovered)) {
               return cs.primary.withOpacity(0.08);
             }
-            if (states.contains(MaterialState.focused)) {
+            if (states.contains(WidgetState.focused)) {
               return cs.primary.withOpacity(0.12);
             }
-            if (states.contains(MaterialState.pressed)) {
+            if (states.contains(WidgetState.pressed)) {
               return cs.primary.withOpacity(0.12);
             }
             return null;

@@ -294,6 +294,7 @@ class PurchaseProvider with ChangeNotifier {
         quantity: quantity,
         unitPrice: unitPrice,
         comment: 'AI: $description', // Put raw description in comment
+        expenseDate: _purchaseBuilder.date, // Set to mandatory purchase date
       );
       _itemsBuilder.add(newItem);
     }
@@ -478,7 +479,7 @@ class PurchaseProvider with ChangeNotifier {
       quantity: 1.0,
       unitPrice: 0,
       supplierName: supplierName,
-      expenseDate: null, // Initializing expenseDate as null
+      expenseDate: _purchaseBuilder.date, // Set to mandatory purchase date
     );
     _itemsBuilder.add(newItem);
     _errorMessage = '';
@@ -502,8 +503,7 @@ class PurchaseProvider with ChangeNotifier {
     double? quantity,
     String? unit,
     int? unitPrice,
-    DateTime? expenseDate, // Changed from choiceDate
-    bool clearExpenseDate = false, // Changed from clearChoiceDate
+    DateTime? expenseDate,
   }) {
     if (index < 0 || index >= _itemsBuilder.length) return;
     final oldItem = _itemsBuilder[index];
@@ -524,7 +524,7 @@ class PurchaseProvider with ChangeNotifier {
         : (subCategory2 ?? oldItem.subCategory2);
 
     // --- New Expense Date Logic ---
-    final DateTime? finalExpenseDate = clearExpenseDate ? null : (expenseDate ?? oldItem.expenseDate); // Changed from finalChoiceDate and choiceDate
+    final DateTime finalExpenseDate = expenseDate ?? oldItem.expenseDate;
 
     _itemsBuilder[index] = PurchaseItem(
       id: oldItem.id,
@@ -664,6 +664,7 @@ class PurchaseProvider with ChangeNotifier {
       unitPrice: libItem.unitPrice ?? 0,
       unit: libItem.unit,
       quantity: 1.0, // Default quantity
+      expenseDate: _purchaseBuilder.date, // Set to mandatory purchase date
     );
     _itemsBuilder.add(newItem);
     notifyListeners();
