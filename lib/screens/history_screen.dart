@@ -9,7 +9,8 @@ import 'package:provisions/widgets/history_skeleton.dart';
 import 'package:provisions/widgets/filter_panel.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+  final Function(Purchase purchase)? onEditPurchase; // NEW PARAMETER
+  const HistoryScreen({super.key, this.onEditPurchase});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -228,6 +229,7 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
                           isSelectionMode: _isSelectionMode,
                           isSelected: _selectedPurchaseIds.contains(purchase.id),
                           onToggleSelection: () => _togglePurchaseSelection(purchase.id!),
+                          onEditPurchase: widget.onEditPurchase,
                         );
                       },
                     ),
@@ -341,6 +343,7 @@ class PurchaseCard extends StatelessWidget {
   final bool isSelectionMode;
   final bool isSelected;
   final VoidCallback onToggleSelection;
+  final Function(Purchase purchase)? onEditPurchase; // NEW PARAMETER
 
   const PurchaseCard({
     super.key,
@@ -348,6 +351,7 @@ class PurchaseCard extends StatelessWidget {
     this.isSelectionMode = false,
     this.isSelected = false,
     required this.onToggleSelection,
+    this.onEditPurchase,
   });
 
   @override
@@ -462,12 +466,7 @@ class PurchaseCard extends StatelessWidget {
         if (value == 'pdf') {
           provider.exportInvoiceToPdf(purchase);
         } else if (value == 'edit') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PurchaseFormScreen(purchase: purchase),
-            ),
-          );
+          onEditPurchase?.call(purchase);
         } else if (value == 'delete') {
           _showDeleteDialog(context, provider, purchase);
         }
@@ -521,3 +520,4 @@ class PurchaseCard extends StatelessWidget {
     );
   }
 }
+

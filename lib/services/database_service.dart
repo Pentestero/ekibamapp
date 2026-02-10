@@ -102,28 +102,7 @@ class DatabaseService {
       
       // rpcResult is a list of dynamic maps (JSON objects) where each map is a Purchase record
       List<Purchase> purchases = rpcResult.map((p) => Purchase.fromMap(p as Map<String, dynamic>)).toList();
-
-      // IMPORTANT: The RPC only returns purchase headers. We need to fetch items separately.
-      // This is an N+1 query problem, a more advanced RPC could return purchases with nested items.
-      for (var purchase in purchases) {
-        if (purchase.id != null) {
-          final itemsData = await _supabase
-              .from('purchase_items')
-              .select('*, suppliers(*)')
-              .eq('purchase_id', purchase.id!)
-              .order('id', ascending: true); // Order items by ID for consistency
-          purchase.items = itemsData.map((itemMap) => PurchaseItem.fromMap(itemMap as Map<String, dynamic>)).toList();
-        }
-      }
-
-      // Client-side sort for grandTotal if requested (since it's a calculated field in Dart)
-      // The SQL function also attempts to sort by grand_total, but this ensures Dart-side consistency
-      if (filters.sortOption == SortOption.amountAsc) {
-        purchases.sort((a, b) => a.grandTotal.compareTo(b.grandTotal));
-      } else if (filters.sortOption == SortOption.amountDesc) {
-        purchases.sort((a, b) => b.grandTotal.compareTo(a.grandTotal));
-      }
-
+      
       return purchases;
     } catch (e) {
       debugPrint("Erreur lors de la récupération des achats filtrés via RPC: $e");
@@ -174,24 +153,7 @@ class DatabaseService {
       );
       
       List<Purchase> purchases = rpcResult.map((p) => Purchase.fromMap(p as Map<String, dynamic>)).toList();
-
-      for (var purchase in purchases) {
-        if (purchase.id != null) {
-          final itemsData = await _supabase
-              .from('purchase_items')
-              .select('*, suppliers(*)')
-              .eq('purchase_id', purchase.id!)
-              .order('id', ascending: true);
-          purchase.items = itemsData.map((itemMap) => PurchaseItem.fromMap(itemMap as Map<String, dynamic>)).toList();
-        }
-      }
-
-      if (filters.sortOption == SortOption.amountAsc) {
-        purchases.sort((a, b) => a.grandTotal.compareTo(b.grandTotal));
-      } else if (filters.sortOption == SortOption.amountDesc) {
-        purchases.sort((a, b) => b.grandTotal.compareTo(a.grandTotal));
-      }
-
+      
       return purchases;
     } catch (e) {
       debugPrint("Erreur lors de la récupération de tous les achats (admin) via RPC: $e");

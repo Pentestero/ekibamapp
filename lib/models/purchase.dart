@@ -15,6 +15,7 @@ class Purchase {
   final DateTime? modifiedAt;
 
   List<PurchaseItem> items;
+  final int grandTotal; // Added grandTotal field
 
   Purchase({
     this.id,
@@ -30,12 +31,13 @@ class Purchase {
     required this.createdAt,
     this.modifiedAt,
     this.items = const [],
+    this.grandTotal = 0, // Initialize grandTotal
   });
 
-  int get totalPaymentFees =>
-      items.fold(0, (sum, item) => sum + item.paymentFee);
+  // int get totalPaymentFees =>
+  //     items.fold(0, (sum, item) => sum + item.paymentFee);
 
-  int get grandTotal => items.fold(0, (sum, item) => sum + item.total);
+  // int get grandTotal => items.fold(0, (sum, item) => sum + item.total);
 
   Map<String, dynamic> toMap() {
     return {
@@ -56,7 +58,7 @@ class Purchase {
 
   static Purchase fromMap(Map<String, dynamic> map) {
     final List<PurchaseItem> items =
-        (map['purchase_items'] as List<dynamic>?)
+        ((map['items'] ?? map['purchase_items']) as List<dynamic>?)
                 ?.map((itemMap) =>
                     PurchaseItem.fromMap(itemMap as Map<String, dynamic>))
                 .toList() ??
@@ -81,6 +83,8 @@ class Purchase {
           ? DateTime.parse(map['modified_at'] as String)
           : null,
       items: items,
+      grandTotal: (map['grand_total'] as num?)?.toInt() ??
+          items.fold(0, (sum, item) => sum + item.total), // Read grand_total directly and cast to int
     );
   }
 
@@ -98,6 +102,7 @@ class Purchase {
     DateTime? createdAt,
     DateTime? modifiedAt,
     List<PurchaseItem>? items,
+    int? grandTotal,
   }) {
     return Purchase(
       id: id ?? this.id,
@@ -113,6 +118,7 @@ class Purchase {
       createdAt: createdAt ?? this.createdAt,
       modifiedAt: modifiedAt ?? this.modifiedAt,
       items: items ?? this.items,
+      grandTotal: grandTotal ?? this.grandTotal,
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:provisions/screens/dashboard_screen.dart';
 import 'package:provisions/screens/purchase_form_screen.dart';
 import 'package:provisions/screens/history_screen.dart';
 import 'package:provisions/screens/admin_dashboard_screen.dart';
+import 'package:provisions/models/purchase.dart'; // NEW IMPORT
 
 class HomePage extends StatefulWidget {
   final User user;
@@ -49,19 +50,23 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _onEditPurchaseFromHistory(Purchase purchase) {
+    setState(() {
+      _currentIndex = 1; // Navigate to "Nouvel Achat" tab
+    });
+    // Ensure the PurchaseProvider loads the purchase for editing AFTER navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PurchaseProvider>().loadPurchaseForEditing(purchase);
+    });
+  }
+
   void _handlePurchaseSubmissionSuccess(bool isEditing) {
     debugPrint('HomePage: _handlePurchaseSubmissionSuccess called with isEditing: $isEditing');
     if (mounted) {
-      debugPrint('HomePage: _handlePurchaseSubmissionSuccess: Navigator.of(context).canPop(): ${Navigator.of(context).canPop()}');
-      if (Navigator.of(context).canPop()) { // Check if there's a screen to pop
-        Navigator.of(context).pop(); // Pop the PurchaseFormScreen if it was pushed
-        debugPrint('HomePage: _handlePurchaseSubmissionSuccess: PurchaseFormScreen popped.');
-      }
-
       setState(() {
         final oldIndex = _currentIndex;
         if (isEditing) {
-          _currentIndex = 2; // Navigate to History
+          _currentIndex = 2; // Navigate to History (index 2)
           debugPrint('HomePage: _handlePurchaseSubmissionSuccess: Changing _currentIndex from $oldIndex to $_currentIndex (History)');
         } else {
           _currentIndex = 0; // Navigate to Dashboard
@@ -72,13 +77,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _buildNavItems() {
-    _screens = [
-      DashboardScreen(navigateToHistory: () => _navigateTo(2)),
-      PurchaseFormScreen(onSubmissionSuccess: _handlePurchaseSubmissionSuccess),
-      const HistoryScreen(),
-      if (_isAdmin) const AdminDashboardScreen(),
-    ];
-
+          _screens = [
+            DashboardScreen(navigateToHistory: () => _navigateTo(2)), // Index for History is 2
+            PurchaseFormScreen(onSubmissionSuccess: _handlePurchaseSubmissionSuccess),
+            HistoryScreen(onEditPurchase: _onEditPurchaseFromHistory),
+            if (_isAdmin) const AdminDashboardScreen(),
+          ];
     _destinations = [
       const NavigationDestination(
         icon: Icon(Icons.dashboard),

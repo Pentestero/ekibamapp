@@ -25,9 +25,8 @@ String? _wordCountValidator(String? value) {
 }
 
 class PurchaseFormScreen extends StatefulWidget {
-  final Purchase? purchase; // Optional purchase for editing
   final Function(bool isEditing)? onSubmissionSuccess; // Callback
-  const PurchaseFormScreen({super.key, this.purchase, this.onSubmissionSuccess});
+  const PurchaseFormScreen({super.key, this.onSubmissionSuccess});
 
   @override
   State<PurchaseFormScreen> createState() => _PurchaseFormScreenState();
@@ -39,24 +38,46 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   final _clientNameController = TextEditingController();
   final bool _isAiProcessing = false;
 
+  void _showSnackBar(BuildContext context, String message, {bool isError = false, bool isWarning = false}) {
+    final Color backgroundColor;
+    final IconData iconData;
+    final Color onPrimaryColor = Theme.of(context).colorScheme.onPrimary;
+
+    if (isError) {
+      backgroundColor = Theme.of(context).colorScheme.error;
+      iconData = Icons.error_outline;
+    } else if (isWarning) {
+      backgroundColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.orange.shade700 : Colors.orange.shade400;
+      iconData = Icons.warning_amber_rounded;
+    } else { // Info or Success
+      backgroundColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.blue.shade600 : Colors.blue.shade400;
+      iconData = Icons.info_outline;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(iconData, color: onPrimaryColor),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message, style: TextStyle(color: onPrimaryColor))),
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 4), // Default duration
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
   Future<void> _scanInvoiceWithAI() async {
     // Subscription check simulation
     if (mounted) {
-      final infoColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.blue.shade600 : Colors.blue.shade400;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.info_outline, color: Theme.of(context).colorScheme.onPrimary),
-              const SizedBox(width: 8),
-              const Text("Cette fonctionnalité nécessite un abonnement mensuel pour l'utiliser."),
-            ],
-          ),
-          backgroundColor: infoColor,
-          duration: const Duration(seconds: 5),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
+      _showSnackBar(
+        context,
+        "Cette fonctionnalité nécessite un abonnement mensuel pour l'utiliser.",
+        isWarning: true,
       );
     }
     return; // Prevent further execution
@@ -114,14 +135,10 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<PurchaseProvider>();
-      if (widget.purchase != null) {
-        provider.loadPurchaseForEditing(widget.purchase!);
-        _commentsController.text = widget.purchase!.comments;
-        _clientNameController.text = widget.purchase!.clientName ?? '';
-      } else {
+      // Clear the form only if not already in editing mode, which would mean _onEditPurchaseFromHistory
+      // has pre-filled the provider's state.
+      if (!provider.isEditing) {
         provider.clearForm();
-        _commentsController.clear();
-        _clientNameController.clear();
       }
     });
   }
@@ -454,9 +471,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                     onPressed: () {
                       final error = provider.addNewItem();
                       if (error != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(error), backgroundColor: Colors.orange),
-                        );
+                        _showSnackBar(context, error, isWarning: true);
                       }
                     },
                     icon: const Icon(Icons.add),
@@ -580,23 +595,19 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   Future<void> _submitForm(
       BuildContext context, PurchaseProvider provider) async {
     if (!(_formKey.currentState?.validate() ?? false) ||
-        provider.itemsBuilder.isEmpty) {
+        provider.itemsBuilder.isEmpty ||
+        provider.grandTotalBuilder <= 0) { // Added check for grandTotalBuilder
       if (provider.itemsBuilder.isEmpty) {
-        final warningColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.orange.shade700 : Colors.orange.shade400;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: Theme.of(context).colorScheme.onPrimary),
-                const SizedBox(width: 8),
-                const Text('Veuillez ajouter au moins un article.'),
-              ],
-            ),
-            backgroundColor: warningColor,
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
+        _showSnackBar(
+          context,
+          'Veuillez ajouter au moins un article.',
+          isWarning: true,
+        );
+      } else if (provider.grandTotalBuilder <= 0) { // New error message for zero total
+        _showSnackBar(
+          context,
+          'Le montant total de l\'achat doit être supérieur à zéro.',
+          isError: true,
         );
       }
       return;
@@ -607,21 +618,10 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
         provider.itemsBuilder.any((item) => item.expenseDate == null);
 
     if (anyItemMissingExpenseDate) {
-      final errorColor = Theme.of(context).colorScheme.error;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onError),
-              const SizedBox(width: 8),
-              const Text('Veuillez sélectionner une date de dépense pour chaque article.'),
-            ],
-          ),
-          backgroundColor: errorColor,
-          duration: const Duration(seconds: 6),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
+      _showSnackBar(
+        context,
+        'Veuillez sélectionner une date de dépense pour chaque article.',
+        isError: true,
       );
       return;
     }
@@ -652,6 +652,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
     );
 
     if (confirmed == true) {
+      debugPrint('PurchaseFormScreen: _submitForm: provider.isEditing BEFORE conditional call: ${provider.isEditing}');
+
       Purchase? resultPurchase;
       if (provider.isEditing) {
         resultPurchase = await provider.updatePurchase();
@@ -669,25 +671,15 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             ? 'Mise à jour réussie avec succès ! N°: ${resultPurchase.refDA}'
             : 'Achat enregistré avec succès ! N°: ${resultPurchase.refDA}';
 
-        final successColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.green.shade600 : Colors.green.shade400;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle_outline, color: Theme.of(context).colorScheme.onPrimary),
-                const SizedBox(width: 8),
-                Text(successMessage),
-              ],
-            ),
-            backgroundColor: successColor,
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
+        _showSnackBar(
+          context,
+          successMessage,
+          isError: false, // Not an error, it's a success
         );
         debugPrint('PurchaseFormScreen: _submitForm: Success message displayed: $successMessage');
         debugPrint('PurchaseFormScreen: _submitForm: Calling onSubmissionSuccess with isEditing: ${provider.isEditing}');
         widget.onSubmissionSuccess?.call(provider.isEditing); // Call the callback
+        provider.clearForm(); // Clear form after successful submission
       } else {
         debugPrint('PurchaseFormScreen: _submitForm: resultPurchase is null. Error occurred.');
         final isNetworkError = provider.errorMessage.contains('Failed to fetch');
@@ -695,23 +687,10 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             ? 'Erreur de connexion. Impossible d\'enregistrer.'
             : 'Erreur: ${provider.errorMessage}';
 
-        final errorColor = Theme.of(context).colorScheme.error;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onError),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(errorMessage),
-                ),
-              ],
-            ),
-            backgroundColor: errorColor,
-            duration: const Duration(seconds: 6), // Longer duration for errors
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
+        _showSnackBar(
+          context,
+          errorMessage,
+          isError: true,
         );
       }
     }
@@ -1057,6 +1036,16 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                             final qty =
                                 double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
                             context.read<PurchaseProvider>().updateItem(widget.index, quantity: qty);
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'La quantité est requise.';
+                            }
+                            final qty = double.tryParse(value.replaceAll(',', '.'));
+                            if (qty == null || qty <= 0) {
+                              return 'La quantité doit être supérieure à zéro.';
+                            }
+                            return null;
                           },
                         ),
                       ),

@@ -174,7 +174,6 @@ class PurchaseProvider with ChangeNotifier {
           await _dbService.addPurchase(purchaseToSave, _user!.id);
 
       _purchases.insert(0, newPurchase);
-      clearForm();
       return newPurchase;
     } catch (e) {
       _errorMessage = "Erreur lors de l'ajout: $e";
@@ -211,7 +210,6 @@ class PurchaseProvider with ChangeNotifier {
         await loadPurchases(FilterState(), notify: false); // Fallback
       }
 
-      clearForm();
       return updatedPurchase;
     } catch (e) {
       _errorMessage = "Erreur lors de la mise à jour: $e";
@@ -244,6 +242,8 @@ class PurchaseProvider with ChangeNotifier {
     _purchaseBuilder = purchase.copyWith();
     _itemsBuilder =
         List<PurchaseItem>.from(purchase.items.map((item) => item.copyWith()));
+    debugPrint('PurchaseProvider: loadPurchaseForEditing - purchase.items.length: ${purchase.items.length}');
+    debugPrint('PurchaseProvider: loadPurchaseForEditing - _itemsBuilder.length: ${_itemsBuilder.length}');
     notifyListeners();
   }
 
@@ -435,6 +435,7 @@ class PurchaseProvider with ChangeNotifier {
       modifiedAt: _editingPurchaseId == null ? null : now, // Only set modifiedAt for existing purchases being saved
       modeRglt: _purchaseBuilder.paymentMethod,
     );
+    debugPrint('PurchaseProvider: _preparePurchaseForSaving - _itemsBuilder.length: ${_itemsBuilder.length}');
     return purchaseToSave;
   }
 
