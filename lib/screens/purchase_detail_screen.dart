@@ -23,9 +23,9 @@ class PurchaseDetailScreen extends StatelessWidget {
             _buildSectionTitle(context, 'Informations Générales'),
             _buildDetailRow(context, 'Référence DA', purchase.refDA ?? 'N/A'),
             _buildDetailRow(context, 'Date', DateFormat('dd/MM/yyyy').format(purchase.date)),
-            _buildDetailRow(context, 'Date de création', DateFormat('dd/MM/yyyy HH:mm').format(purchase.createdAt)),
+            _buildDetailRow(context, 'Date de création', DateFormat('dd/MM/yyyy HH:mm').format(purchase.createdAt.toLocal())),
             if (purchase.modifiedAt != null && purchase.modifiedAt!.difference(purchase.createdAt).inSeconds > 5) // Display modifiedAt only if significantly different
-              _buildDetailRow(context, 'Dernière modification', DateFormat('dd/MM/yyyy HH:mm').format(purchase.modifiedAt!)),
+              _buildDetailRow(context, 'Dernière modification', DateFormat('dd/MM/yyyy HH:mm').format(purchase.modifiedAt!.toLocal())),
             _buildDetailRow(context, 'Demandeur', purchase.demander),
             _buildDetailRow(context, 'Type de Projet', purchase.projectType),
             if (purchase.clientName != null && purchase.clientName!.isNotEmpty)

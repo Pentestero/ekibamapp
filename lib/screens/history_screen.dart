@@ -60,12 +60,12 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
             debugPrint('HistoryScreen: _showFilterPanel: Filter changed to: ${newFilters.searchQuery}, Year: ${newFilters.year}, Month: ${newFilters.month}');
             provider.loadPurchases(newFilters); // Explicit call
             if (mounted && (newFilters.startDate != null || newFilters.endDate != null)) {
-              final infoColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.blue.shade600 : Colors.blue.shade400;
+              final infoColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.green.shade600 : Colors.green.shade400;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Theme.of(context).colorScheme.onPrimary),
+                      Icon(Icons.check_circle_outline, color: Theme.of(context).colorScheme.onPrimary),
                       const SizedBox(width: 8),
                       const Text('Filtre par date appliqué'),
                     ],
@@ -441,9 +441,9 @@ class PurchaseCard extends StatelessWidget {
                         Text(DateFormat('dd/MM/yyyy').format(purchase.date)),
                       ],
                     ),
-                    Text('Créé le: ${DateFormat('dd/MM/yyyy').format(purchase.createdAt)}', style: Theme.of(context).textTheme.bodySmall),
+                    Text('Créé le: ${DateFormat('dd/MM/yyyy').format(purchase.createdAt.toLocal())}', style: Theme.of(context).textTheme.bodySmall),
                     if (purchase.modifiedAt != null && purchase.modifiedAt!.difference(purchase.createdAt).inSeconds > 5)
-                      Text('Modifié le: ${DateFormat('dd/MM/yyyy').format(purchase.modifiedAt!)}', style: Theme.of(context).textTheme.bodySmall),
+                      Text('Modifié le: ${DateFormat('dd/MM/yyyy').format(purchase.modifiedAt!.toLocal())}', style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ),
               ),

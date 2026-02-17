@@ -50,8 +50,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
       backgroundColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.orange.shade700 : Colors.orange.shade400;
       iconData = Icons.warning_amber_rounded;
     } else { // Info or Success
-      backgroundColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.blue.shade600 : Colors.blue.shade400;
-      iconData = Icons.info_outline;
+      backgroundColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.green.shade600 : Colors.green.shade400;
+      iconData = Icons.check_circle_outline; // Changed icon to a checkmark for success
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
