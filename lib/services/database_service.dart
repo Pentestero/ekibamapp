@@ -1,10 +1,9 @@
-import 'package:provisions/models/purchase_item.dart'; // NEW IMPORT
+// NEW IMPORT
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provisions/models/purchase.dart';
 import 'package:provisions/models/library_item.dart';
 import 'package:provisions/models/supplier.dart';
-import 'package:intl/intl.dart';
 import '../widgets/filter_panel.dart';
 
 class DatabaseService {

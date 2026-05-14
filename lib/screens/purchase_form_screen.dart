@@ -1,17 +1,16 @@
-import 'package:file_picker/file_picker.dart';
-import 'package:provisions/services/ai_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show HapticFeedback, FilteringTextInputFormatter;
 import 'package:provider/provider.dart';
-import 'package:provisions/models/library_item.dart'; // NEW IMPORT
+import 'package:provisions/models/library_item.dart';
 import 'package:provisions/models/purchase.dart';
 import 'package:provisions/providers/purchase_provider.dart';
 import 'package:intl/intl.dart';
-import 'package:provisions/widgets/add_requester_dialog.dart'; // Import new dialog
-import 'package:provisions/widgets/add_payment_method_dialog.dart'; // Import new dialog
-import 'package:provisions/widgets/add_supplier_dialog.dart'; // Required for _PurchaseItemCard's dialog
-import 'package:provisions/widgets/add_category_dialog.dart'; // Required for _PurchaseItemCard's dialog
-import 'package:provisions/widgets/library_item_selection_dialog.dart'; // NEW IMPORT
+import 'package:provisions/widgets/add_requester_dialog.dart';
+import 'package:provisions/widgets/add_payment_method_dialog.dart';
+import 'package:provisions/widgets/add_supplier_dialog.dart';
+import 'package:provisions/widgets/add_category_dialog.dart';
+import 'package:provisions/widgets/library_item_selection_dialog.dart';
+import 'package:provisions/widgets/animations.dart';
 
 String? _wordCountValidator(String? value) {
   if (value == null || value.isEmpty) {
@@ -176,12 +175,27 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: Consumer<PurchaseProvider>(
           builder: (context, provider, child) {
-            return Text(
-                provider.isEditing ? 'Modifier l\'achat' : 'Nouvel Achat');
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: cs.primary,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                    provider.isEditing ? 'Modifier l\'achat' : 'Nouvel Achat'),
+              ],
+            );
           },
         ),
         actions: [
@@ -224,8 +238,8 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                           icon: const Icon(Icons.document_scanner_outlined),
                           label: const Text('Analyser un document (IA)'),
                           style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -267,21 +281,31 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   }
 
   Widget _buildHeaderCard(BuildContext context, PurchaseProvider provider) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Informations Générales',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    )),
+            Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: cs.primary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text('Informations Générales',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: cs.primary,
+                          fontWeight: FontWeight.w700,
+                        )),
+              ],
+            ),
             const SizedBox(height: 24),
             ListTile(
               leading: Icon(Icons.calendar_today,
@@ -357,26 +381,39 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 }
               },
             ),
-            if (provider.purchaseBuilder.projectType == 'Client' ||
-                provider.purchaseBuilder.projectType == 'Mixte') ...[
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _clientNameController,
-                decoration: InputDecoration(
-                    labelText: 'Nom du Client ou projet client',
-                    prefixIcon: const Icon(Icons.person_pin), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                onChanged: (value) =>
-                    provider.updatePurchaseHeader(clientName: value),
-                validator: (value) {
-                  if ((provider.purchaseBuilder.projectType == 'Client' ||
-                          provider.purchaseBuilder.projectType == 'Mixte') &&
-                      (value == null || value.isEmpty)) {
-                    return 'Le nom du client/projet est requis';
-                  }
-                  return null;
-                },
-              ),
-            ],
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              alignment: Alignment.topCenter,
+              child: (provider.purchaseBuilder.projectType == 'Client' ||
+                      provider.purchaseBuilder.projectType == 'Mixte')
+                  ? Column(
+                      children: [
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _clientNameController,
+                          decoration: InputDecoration(
+                              labelText: 'Nom du Client ou projet client',
+                              prefixIcon: const Icon(Icons.person_pin),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10))),
+                          onChanged: (value) =>
+                              provider.updatePurchaseHeader(clientName: value),
+                          validator: (value) {
+                            if ((provider.purchaseBuilder.projectType ==
+                                        'Client' ||
+                                    provider.purchaseBuilder.projectType ==
+                                        'Mixte') &&
+                                (value == null || value.isEmpty)) {
+                              return 'Le nom du client/projet est requis';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    )
+                  : const SizedBox.shrink(),
+            ),
             const SizedBox(height: 16),
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -426,21 +463,31 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   }
 
   Widget _buildItemsSection(BuildContext context, PurchaseProvider provider) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Articles',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    )),
+            Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: cs.primary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text('Articles',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: cs.primary,
+                          fontWeight: FontWeight.w700,
+                        )),
+              ],
+            ),
             const SizedBox(height: 16),
             if (provider.itemsBuilder.isEmpty)
               Center(
@@ -453,14 +500,25 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                   ),
                 ),
               ),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: provider.itemsBuilder.length,
-              itemBuilder: (context, index) {
-                // Use the item itself as the ValueKey, relies on PurchaseItem's operator== and hashCode
-                return _PurchaseItemCard(key: ValueKey(provider.itemsBuilder[index]), index: index);
-              },
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: Curves.easeOutBack,
+              switchOutCurve: Curves.easeIn,
+              child: provider.itemsBuilder.isEmpty
+                  ? const SizedBox.shrink()
+                  : Column(
+                      key: const ValueKey('items_list'),
+                      children: provider.itemsBuilder.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        return ScaleIn(
+                          key: ValueKey('item_${provider.itemsBuilder[index].localId}'),
+                          child: _PurchaseItemCard(
+                            key: ValueKey(provider.itemsBuilder[index]),
+                            index: index,
+                          ),
+                        );
+                      }).toList(),
+                    ),
             ),
             const SizedBox(height: 16),
             Row(
@@ -516,32 +574,29 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   }
 
   Widget _buildTotalsCard(BuildContext context, PurchaseProvider provider) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      color: Theme.of(context).colorScheme.primaryContainer,
+      color: cs.primaryContainer,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('GRAND TOTAL',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w800,
+                      color: cs.onPrimaryContainer,
                     )),
-            Expanded( // Wrap in Expanded
+            Expanded(
               child: Text(
                 '${NumberFormat('#,##0', 'fr_FR').format(provider.grandTotalBuilder)} XAF',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w800,
+                      color: cs.onPrimaryContainer,
                     ),
-                textAlign: TextAlign.end, // Align to end
-                softWrap: false, // Prevent wrapping
-                overflow: TextOverflow.ellipsis, // Show ellipsis if overflows
+                textAlign: TextAlign.end,
+                softWrap: false,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -551,24 +606,42 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
   }
 
   Widget _buildSubmitButton(BuildContext context, PurchaseProvider provider) {
-    return SizedBox(
+    final cs = Theme.of(context).colorScheme;
+    return Container(
       width: double.infinity,
       height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        gradient: LinearGradient(
+          colors: [cs.primary, cs.secondary],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: cs.primary.withAlpha(60),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: ElevatedButton.icon(
         onPressed:
             provider.isLoading ? null : () => _submitForm(context, provider),
         style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
           ),
-          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, letterSpacing: 0.3),
         ),
         icon: provider.isLoading
             ? const SizedBox(
-                width: 20,
-                height: 20,
+                width: 22,
+                height: 22,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white))
+                    strokeWidth: 2.5, color: Colors.white))
             : const Icon(Icons.save),
         label: Text(provider.isLoading
             ? 'Enregistrement...'
@@ -577,19 +650,6 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 : 'Enregistrer l\'Achat')),
       ),
     );
-  }
-
-  Future<void> _selectDate(
-      BuildContext context, PurchaseProvider provider) async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: provider.purchaseBuilder.date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
-    );
-    if (date != null) {
-      provider.updatePurchaseHeader(date: date);
-    }
   }
 
   Future<void> _submitForm(
@@ -610,19 +670,6 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
           isError: true,
         );
       }
-      return;
-    }
-
-    // New validation for expenseDate in purchase items
-    final bool anyItemMissingExpenseDate =
-        provider.itemsBuilder.any((item) => item.expenseDate == null);
-
-    if (anyItemMissingExpenseDate) {
-      _showSnackBar(
-        context,
-        'Veuillez sélectionner une date de dépense pour chaque article.',
-        isError: true,
-      );
       return;
     }
 
@@ -741,8 +788,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
     final lastSelectableDate =
         DateTime.now().isBefore(purchaseCreationDate) ? DateTime.now() : purchaseCreationDate;
 
-    // Ensure initialDate is not after lastSelectableDate
-    DateTime initialDate = item.expenseDate ?? DateTime.now();
+    DateTime initialDate = item.expenseDate;
     if (initialDate.isAfter(lastSelectableDate)) {
       initialDate = lastSelectableDate; // Clamp initialDate
     }
@@ -801,6 +847,7 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final provider = context.watch<PurchaseProvider>();
     final item = provider.itemsBuilder[widget.index];
 
@@ -809,13 +856,8 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
         provider.categories[item.category]?.keys.toList() ?? [];
     final subCategories2 =
         provider.categories[item.category]?[item.subCategory1] ?? [];
-
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -823,15 +865,31 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Article #${widget.index + 1}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: cs.primary,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text('Article #${widget.index + 1}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700)),
+                  ],
+                ),
                 IconButton(
                   icon: Icon(Icons.delete_outline,
-                      color: Theme.of(context).colorScheme.error),
-                  onPressed: () => provider.removeItem(widget.index),
+                      color: cs.error),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    provider.removeItem(widget.index);
+                  },
                 ),
               ],
             ),
@@ -1098,25 +1156,30 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
+                color: cs.primary.withAlpha(10),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: cs.primary.withAlpha(20)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Total Article:',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Expanded( // Wrap in Expanded
+                  Text('Total Article:',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface)),
+                  Expanded(
                     child: Text(
                       '${NumberFormat('#,##0', 'fr_FR').format(item.total)} XAF',
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.end, // Align to end
-                      softWrap: false, // Prevent wrapping
-                      overflow: TextOverflow.ellipsis, // Show ellipsis if overflows
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: cs.primary),
+                      textAlign: TextAlign.end,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

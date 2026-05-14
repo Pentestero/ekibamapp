@@ -1,6 +1,29 @@
 [build]
-  command = "rm -rf /opt/build/flutter && git clone https://github.com/flutter/flutter.git --branch $FLUTTER_VERSION --depth 1 /opt/build/flutter && /opt/build/flutter/bin/flutter --version && /opt/build/flutter/bin/flutter build web --release"
+  command = "rm -rf /opt/build/flutter && git clone https://github.com/flutter/flutter.git --branch $FLUTTER_VERSION --depth 1 /opt/build/flutter && /opt/build/flutter/bin/flutter --version && /opt/build/flutter/bin/flutter build web --release --web-renderer auto"
   publish = "build/web"
 
 [build.environment]
   FLUTTER_VERSION = "3.35.6"
+
+# SPA redirect: all routes to index.html so Flutter handles routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Cache headers for static assets
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.wasm"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "application/wasm"
+
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

@@ -4,24 +4,23 @@ import 'package:provisions/providers/purchase_provider.dart';
 import 'package:provisions/models/purchase.dart';
 import 'package:intl/intl.dart';
 import 'package:provisions/widgets/app_brand.dart';
-import 'package:provisions/screens/purchase_form_screen.dart';
 import 'package:provisions/widgets/history_skeleton.dart';
 import 'package:provisions/widgets/filter_panel.dart';
+import 'package:provisions/widgets/animations.dart';
 
 class HistoryScreen extends StatefulWidget {
-  final Function(Purchase purchase)? onEditPurchase; // NEW PARAMETER
+  final Function(Purchase purchase)? onEditPurchase;
   const HistoryScreen({super.key, this.onEditPurchase});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderStateMixin {
-  // Animation
+class _HistoryScreenState extends State<HistoryScreen>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _contentController;
   late final Animation<double> _contentFadeAnimation;
 
-  // State
   FilterState _filterState = FilterState();
   bool _isSelectionMode = false;
   Set<int> _selectedPurchaseIds = {};
@@ -33,7 +32,8 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    _contentFadeAnimation = CurvedAnimation(parent: _contentController, curve: Curves.easeIn);
+    _contentFadeAnimation =
+        CurvedAnimation(parent: _contentController, curve: Curves.easeIn);
     _contentController.forward();
   }
 
@@ -44,9 +44,11 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
   }
 
   void _showFilterPanel() {
-    debugPrint('HistoryScreen: _showFilterPanel opened. Current _filterState: ${_filterState.searchQuery}, Year: ${_filterState.year}, Month: ${_filterState.month}');
+    debugPrint(
+        'HistoryScreen: _showFilterPanel opened. Current _filterState: ${_filterState.searchQuery}, Year: ${_filterState.year}, Month: ${_filterState.month}');
     final provider = context.read<PurchaseProvider>();
-    final availableYears = provider.purchases.map((p) => p.date.year).toSet().toList();
+    final availableYears =
+        provider.purchases.map((p) => p.date.year).toSet().toList();
     availableYears.sort((a, b) => b.compareTo(a));
     showModalBottomSheet(
       context: context,
@@ -57,23 +59,28 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
           availableYears: availableYears,
           onFilterChanged: (newFilters) {
             setState(() => _filterState = newFilters);
-            debugPrint('HistoryScreen: _showFilterPanel: Filter changed to: ${newFilters.searchQuery}, Year: ${newFilters.year}, Month: ${newFilters.month}');
-            provider.loadPurchases(newFilters); // Explicit call
-            if (mounted && (newFilters.startDate != null || newFilters.endDate != null)) {
-              final infoColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.green.shade600 : Colors.green.shade400;
+            debugPrint(
+                'HistoryScreen: _showFilterPanel: Filter changed to: ${newFilters.searchQuery}, Year: ${newFilters.year}, Month: ${newFilters.month}');
+            provider.loadPurchases(newFilters);
+            if (mounted &&
+                (newFilters.startDate != null ||
+                    newFilters.endDate != null)) {
+              final infoColor = Theme.of(context).brightness == Brightness.light
+                  ? Colors.green.shade600
+                  : Colors.green.shade400;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Row(
                     children: [
-                      Icon(Icons.check_circle_outline, color: Theme.of(context).colorScheme.onPrimary),
+                      Icon(Icons.check_circle_outline,
+                          color:
+                              Theme.of(context).colorScheme.onPrimary),
                       const SizedBox(width: 8),
                       const Text('Filtre par date appliqué'),
                     ],
                   ),
                   backgroundColor: infoColor,
                   duration: const Duration(seconds: 2),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               );
             }
@@ -82,30 +89,30 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
       },
     ).then((_) {
       if (mounted) {
-        debugPrint('HistoryScreen: _showFilterPanel closed. Reloading purchases with _filterState: ${_filterState.searchQuery}, Year: ${_filterState.year}, Month: ${_filterState.month}');
+        debugPrint(
+            'HistoryScreen: _showFilterPanel closed. Reloading purchases with _filterState: ${_filterState.searchQuery}, Year: ${_filterState.year}, Month: ${_filterState.month}');
         provider.loadPurchases(_filterState);
       }
     });
   }
 
-
-
   void _onExport(List<Purchase> purchasesToExport) {
     if (purchasesToExport.isEmpty) {
-      final warningColor = Theme.of(context).colorScheme.brightness == Brightness.light ? Colors.orange.shade700 : Colors.orange.shade400;
+      final warningColor = Theme.of(context).brightness == Brightness.light
+          ? Colors.orange.shade700
+          : Colors.orange.shade400;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Theme.of(context).colorScheme.onPrimary), // Warning icon
+              Icon(Icons.warning_amber_rounded,
+                  color: Theme.of(context).colorScheme.onPrimary),
               const SizedBox(width: 8),
               const Text('Aucun achat à exporter.'),
             ],
           ),
           backgroundColor: warningColor,
-          duration: const Duration(seconds: 3), // Slightly longer duration
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 3),
         ),
       );
       return;
@@ -132,9 +139,11 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('HistoryScreen: build method called. Current _filterState: ${_filterState.searchQuery}, Year: ${_filterState.year}, Month: ${_filterState.month}');
+    final cs = Theme.of(context).colorScheme;
+    debugPrint(
+        'HistoryScreen: build method called. Current _filterState: ${_filterState.searchQuery}, Year: ${_filterState.year}, Month: ${_filterState.month}');
     final provider = context.watch<PurchaseProvider>();
-    final purchasesToDisplay = provider.purchases; // Already filtered and sorted by provider
+    final purchasesToDisplay = provider.purchases;
 
     final isAllSelected = _isSelectionMode &&
         purchasesToDisplay.isNotEmpty &&
@@ -142,14 +151,18 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
 
     return Scaffold(
       appBar: AppBar(
-        title: _isSelectionMode ? Text('${_selectedPurchaseIds.length} sélectionné(s)') : const AppBrand(),
-        actions: _buildAppBarActions(provider, purchasesToDisplay, isAllSelected),
+        title: _isSelectionMode
+            ? Text('${_selectedPurchaseIds.length} sélectionné(s)')
+            : const AppBrand(),
+        actions: _buildAppBarActions(
+            provider, purchasesToDisplay, isAllSelected, cs),
       ),
-      body: _buildBody(provider, purchasesToDisplay),
+      body: _buildBody(provider, purchasesToDisplay, cs),
     );
   }
 
-  List<Widget> _buildAppBarActions(PurchaseProvider provider, List<Purchase> purchasesToDisplay, bool isAllSelected) {
+  List<Widget> _buildAppBarActions(PurchaseProvider provider,
+      List<Purchase> purchasesToDisplay, bool isAllSelected, ColorScheme cs) {
     if (_isSelectionMode) {
       return [
         Checkbox(
@@ -157,7 +170,8 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
           onChanged: (bool? value) {
             setState(() {
               if (value == true) {
-                _selectedPurchaseIds = purchasesToDisplay.map((p) => p.id!).toSet();
+                _selectedPurchaseIds =
+                    purchasesToDisplay.map((p) => p.id!).toSet();
               } else {
                 _selectedPurchaseIds.clear();
               }
@@ -169,7 +183,9 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
           tooltip: 'Exporter la sélection',
           onPressed: _selectedPurchaseIds.isNotEmpty
               ? () {
-                  final selected = provider.purchases.where((p) => _selectedPurchaseIds.contains(p.id!)).toList();
+                  final selected = provider.purchases
+                      .where((p) => _selectedPurchaseIds.contains(p.id!))
+                      .toList();
                   _onExport(selected);
                 }
               : null,
@@ -194,43 +210,66 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
         ),
         IconButton(
           icon: const Icon(Icons.file_download),
-          tooltip: 'Télécharger la liste filtrée (Excel)', // More specific tooltip
+          tooltip: 'Télécharger la liste filtrée (Excel)',
           onPressed: () => _onExport(purchasesToDisplay),
         ),
       ];
     }
   }
 
-  Widget _buildBody(PurchaseProvider provider, List<Purchase> purchasesToDisplay) {
+  Widget _buildBody(PurchaseProvider provider,
+      List<Purchase> purchasesToDisplay, ColorScheme cs) {
     if (provider.isLoading && purchasesToDisplay.isEmpty) {
       return HistorySkeleton();
     }
     if (provider.errorMessage.isNotEmpty) {
       return _buildErrorWidget(context, provider);
     }
-    
+
     return FadeTransition(
       opacity: _contentFadeAnimation,
       child: RefreshIndicator(
-        onRefresh: () => provider.loadPurchases(_filterState), // Pass current filter state
+        onRefresh: () => provider.loadPurchases(_filterState),
         child: Column(
           children: [
-            _buildFilterChipsBar(),
+            _buildFilterChipsBar(cs),
             Expanded(
               child: purchasesToDisplay.isEmpty
-                  ? _buildEmptyStateWidget(context)
+                  ? _buildEmptyStateWidget(cs)
                   : ListView.builder(
                       padding: const EdgeInsets.all(8),
                       itemCount: purchasesToDisplay.length,
                       itemBuilder: (context, index) {
                         final purchase = purchasesToDisplay[index];
-                        return PurchaseCard(
-                          purchase: purchase,
-                          isSelectionMode: _isSelectionMode,
-                          isSelected: _selectedPurchaseIds.contains(purchase.id),
-                          onToggleSelection: () => _togglePurchaseSelection(purchase.id!),
-                          onEditPurchase: widget.onEditPurchase,
+                        final card = StaggeredItem(
+                          index: index,
+                          itemDelay: const Duration(milliseconds: 40),
+                          duration: const Duration(milliseconds: 350),
+                          curve: Curves.easeOutCubic,
+                          child: PurchaseCard(
+                            purchase: purchase,
+                            isSelectionMode: _isSelectionMode,
+                            isSelected:
+                                _selectedPurchaseIds.contains(purchase.id),
+                            onToggleSelection: () =>
+                                _togglePurchaseSelection(purchase.id!),
+                            onEditPurchase: widget.onEditPurchase,
+                          ),
                         );
+                        return _isSelectionMode
+                            ? card
+                            : SwipeToDismiss(
+                                dismissKey:
+                                    ValueKey('dismiss_${purchase.id}'),
+                                onDelete: () {
+                                  context
+                                      .read<PurchaseProvider>()
+                                      .deletePurchase(purchase.id!);
+                                },
+                                confirmLabel:
+                                    'Supprimer l\'achat ${purchase.refDA ?? ''} ?',
+                                child: card,
+                              );
                       },
                     ),
             ),
@@ -240,9 +279,9 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildFilterChipsBar() {
+  Widget _buildFilterChipsBar(ColorScheme cs) {
     List<Widget> chips = [];
-    final provider = context.read<PurchaseProvider>(); // Access provider here
+    final provider = context.read<PurchaseProvider>();
 
     if (_filterState.searchQuery.isNotEmpty) {
       chips.add(Chip(
@@ -251,7 +290,7 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
           setState(() {
             _filterState = _filterState.copyWith(searchQuery: '');
           });
-          provider.loadPurchases(_filterState); // Reload data
+          provider.loadPurchases(_filterState);
         },
       ));
     }
@@ -262,51 +301,54 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
           setState(() {
             _filterState = _filterState.copyWith(resetYear: true);
           });
-          provider.loadPurchases(_filterState); // Reload data
+          provider.loadPurchases(_filterState);
         },
       ));
     }
     if (_filterState.month != null) {
       chips.add(Chip(
-        label: Text('Mois: ${_filterState.month != null ? DateFormat.MMMM('fr_FR').format(DateTime(0, _filterState.month!)) : ''}'),
+        label: Text(
+            'Mois: ${_filterState.month != null ? DateFormat.MMMM('fr_FR').format(DateTime(0, _filterState.month!)) : ''}'),
         onDeleted: () {
           setState(() {
             _filterState = _filterState.copyWith(resetMonth: true);
           });
-          provider.loadPurchases(_filterState); // Reload data
+          provider.loadPurchases(_filterState);
         },
       ));
     }
     if (_filterState.startDate != null) {
       chips.add(Chip(
-        label: Text('Date début: ${DateFormat('dd/MM/yyyy').format(_filterState.startDate!)}'),
+        label: Text(
+            'Date début: ${DateFormat('dd/MM/yyyy').format(_filterState.startDate!)}'),
         onDeleted: () {
           setState(() {
             _filterState = _filterState.copyWith(resetStartDate: true);
           });
-          provider.loadPurchases(_filterState); // Reload data
+          provider.loadPurchases(_filterState);
         },
       ));
     }
     if (_filterState.endDate != null) {
       chips.add(Chip(
-        label: Text('Date fin: ${DateFormat('dd/MM/yyyy').format(_filterState.endDate!)}'),
+        label: Text(
+            'Date fin: ${DateFormat('dd/MM/yyyy').format(_filterState.endDate!)}'),
         onDeleted: () {
           setState(() {
             _filterState = _filterState.copyWith(resetEndDate: true);
           });
-          provider.loadPurchases(_filterState); // Reload data
+          provider.loadPurchases(_filterState);
         },
       ));
     }
-    
+
     if (chips.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      color: cs.surfaceContainerHighest.withAlpha(80),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Wrap(
@@ -318,23 +360,55 @@ class _HistoryScreenState extends State<HistoryScreen> with SingleTickerProvider
   }
 
   Widget _buildErrorWidget(BuildContext context, PurchaseProvider provider) {
+    final cs = Theme.of(context).colorScheme;
     final isNetworkError = provider.errorMessage.contains('Failed to fetch');
     final errorMessage = isNetworkError
         ? 'Erreur de connexion.\nVeuillez vérifier votre connexion internet et réessayer.'
         : provider.errorMessage;
 
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(isNetworkError ? Icons.wifi_off : Icons.error_outline, size: 64, color: Colors.red),
-      const SizedBox(height: 16), Text(errorMessage, textAlign: TextAlign.center),
-      const SizedBox(height: 16), ElevatedButton(onPressed: () => provider.loadPurchases(_filterState), child: const Text('Réessayer')),
-    ]));
+    return Center(
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(
+            isNetworkError ? Icons.wifi_off : Icons.error_outline,
+            size: 64,
+            color: cs.error),
+        const SizedBox(height: 16),
+        Text(errorMessage, textAlign: TextAlign.center),
+        const SizedBox(height: 16),
+        ElevatedButton(
+            onPressed: () => provider.loadPurchases(_filterState),
+            child: const Text('Réessayer')),
+      ]),
+    );
   }
 
-  Widget _buildEmptyStateWidget(BuildContext context) {
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Icon(Icons.history, size: 64, color: Colors.grey),
-      const SizedBox(height: 16), Text('Aucun achat trouvé pour les filtres actuels'),
-    ]));
+  Widget _buildEmptyStateWidget(ColorScheme cs) {
+    return Center(
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            color: cs.primary.withAlpha(15),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child:
+              Icon(Icons.history, size: 36, color: cs.primary.withAlpha(120)),
+        ),
+        const SizedBox(height: 16),
+        Text('Aucun achat trouvé',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        Text('Aucun achat ne correspond aux filtres actuels.',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: cs.onSurface.withAlpha(150))),
+      ]),
+    );
   }
 }
 
@@ -343,7 +417,7 @@ class PurchaseCard extends StatelessWidget {
   final bool isSelectionMode;
   final bool isSelected;
   final VoidCallback onToggleSelection;
-  final Function(Purchase purchase)? onEditPurchase; // NEW PARAMETER
+  final Function(Purchase purchase)? onEditPurchase;
 
   const PurchaseCard({
     super.key,
@@ -356,19 +430,20 @@ class PurchaseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      elevation: 3,
       child: InkWell(
         onTap: isSelectionMode ? onToggleSelection : null,
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(14),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (isSelectionMode)
                 Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
+                  padding: const EdgeInsets.only(right: 8),
                   child: Checkbox(
                     value: isSelected,
                     onChanged: (value) => onToggleSelection(),
@@ -385,65 +460,80 @@ class PurchaseCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             purchase.refDA ?? 'N/A',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                                color: cs.onSurface),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        _buildTrailingActions(context),
+                        _buildTrailingActions(context, cs),
                       ],
                     ),
-                    const Divider(),
-                    const SizedBox(height: 4),
-                    Text('Demandeur: ${purchase.demander}', overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 4),
-                    Text(
-                      purchase.projectType == 'Client' && (purchase.clientName?.isNotEmpty ?? false)
-                          ? 'Projet: ${purchase.projectType} (${purchase.clientName})'
-                          : 'Projet: ${purchase.projectType}',
-                      overflow: TextOverflow.ellipsis
-                    ),
                     const SizedBox(height: 8),
+                    _buildInfoRow(Icons.person_outline, purchase.demander, cs),
+                    const SizedBox(height: 4),
+                    _buildInfoRow(
+                        Icons.work_outline,
+                        purchase.projectType == 'Client' &&
+                                (purchase.clientName?.isNotEmpty ?? false)
+                            ? 'Projet: ${purchase.projectType} (${purchase.clientName})'
+                            : 'Projet: ${purchase.projectType}',
+                        cs),
                     if (purchase.items.isNotEmpty) ...[
+                      const SizedBox(height: 8),
                       Text(
                         'Articles (${purchase.items.length}): ${purchase.items.map((item) => item.subCategory2 ?? item.subCategory1).take(2).join(', ')}${purchase.items.length > 2 ? '...' : ''}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(fontStyle: FontStyle.italic),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
-                      // Display expenseDate for each item if available
-                      ...purchase.items
-                          .where((item) => item.expenseDate != null)
-                          .map(
-                            (item) => Padding(
-                              padding: const EdgeInsets.only(left: 8.0, top: 2.0),
-                              child: Text(
-                                '  • ${item.subCategory2 ?? item.subCategory1}: Date de Dépense ${DateFormat('dd/MM/yyyy').format(item.expenseDate)}',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.primary),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                      const SizedBox(height: 8),
                     ],
+                    const Divider(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: Text(
-                            '${NumberFormat('#,##0', 'fr_FR').format(purchase.grandTotal)} XAF',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                        Text(
+                          '${NumberFormat('#,##0', 'fr_FR').format(purchase.grandTotal)} XAF',
+                          style: TextStyle(
+                            color: cs.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        Text(DateFormat('dd/MM/yyyy').format(purchase.date)),
+                        Text(
+                          DateFormat('dd/MM/yyyy').format(purchase.date),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: cs.onSurface.withAlpha(120)),
+                        ),
                       ],
                     ),
-                    Text('Créé le: ${DateFormat('dd/MM/yyyy').format(purchase.createdAt.toLocal())}', style: Theme.of(context).textTheme.bodySmall),
-                    if (purchase.modifiedAt != null && purchase.modifiedAt!.difference(purchase.createdAt).inSeconds > 5)
-                      Text('Modifié le: ${DateFormat('dd/MM/yyyy').format(purchase.modifiedAt!.toLocal())}', style: Theme.of(context).textTheme.bodySmall),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Créé le: ${DateFormat('dd/MM/yyyy').format(purchase.createdAt.toLocal())}',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: cs.onSurface.withAlpha(100)),
+                    ),
+                    if (purchase.modifiedAt != null &&
+                        purchase.modifiedAt!
+                                .difference(purchase.createdAt)
+                                .inSeconds >
+                            5)
+                      Text(
+                        'Modifié le: ${DateFormat('dd/MM/yyyy').format(purchase.modifiedAt!.toLocal())}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: cs.onSurface.withAlpha(100)),
+                      ),
                   ],
                 ),
               ),
@@ -454,9 +544,24 @@ class PurchaseCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTrailingActions(BuildContext context) {
+  Widget _buildInfoRow(IconData icon, String text, ColorScheme cs) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: cs.onSurface.withAlpha(120)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(text,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 13, color: cs.onSurface.withAlpha(180))),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrailingActions(BuildContext context, ColorScheme cs) {
     if (isSelectionMode) {
-      return const SizedBox.shrink(); // Hide actions in selection mode
+      return const SizedBox.shrink();
     }
 
     final provider = context.read<PurchaseProvider>();
@@ -468,22 +573,22 @@ class PurchaseCard extends StatelessWidget {
         } else if (value == 'edit') {
           onEditPurchase?.call(purchase);
         } else if (value == 'delete') {
-          _showDeleteDialog(context, provider, purchase);
+          _showDeleteDialog(context, provider, purchase, cs);
         }
       },
       itemBuilder: (context) => [
         PopupMenuItem(
           value: 'pdf',
           child: Row(children: [
-            Icon(Icons.picture_as_pdf, color: Colors.red.shade700),
+            Icon(Icons.picture_as_pdf, color: Colors.red.shade600, size: 20),
             const SizedBox(width: 8),
-            const Text('Télécharger PDF'), // Changed text
+            const Text('Télécharger PDF'),
           ]),
         ),
         PopupMenuItem(
           value: 'edit',
           child: Row(children: [
-            Icon(Icons.edit, color: Colors.blue.shade700),
+            Icon(Icons.edit, color: cs.primary, size: 20),
             const SizedBox(width: 8),
             const Text('Modifier'),
           ]),
@@ -491,7 +596,7 @@ class PurchaseCard extends StatelessWidget {
         PopupMenuItem(
           value: 'delete',
           child: Row(children: [
-            Icon(Icons.delete, color: Colors.grey.shade600),
+            Icon(Icons.delete, color: cs.error, size: 20),
             const SizedBox(width: 8),
             const Text('Supprimer'),
           ]),
@@ -500,16 +605,21 @@ class PurchaseCard extends StatelessWidget {
     );
   }
 
-  void _showDeleteDialog(BuildContext context, PurchaseProvider provider, Purchase purchase) {
+  void _showDeleteDialog(BuildContext context, PurchaseProvider provider,
+      Purchase purchase, ColorScheme cs) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Supprimer l\'achat'),
-        content: Text('Êtes-vous sûr de vouloir supprimer cet achat du ${DateFormat('dd/MM/yyyy').format(purchase.date)} ? Cette action est irréversible.'),
+        content: Text(
+            'Êtes-vous sûr de vouloir supprimer cet achat du ${DateFormat('dd/MM/yyyy').format(purchase.date)} ? Cette action est irréversible.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Annuler')),
           TextButton(
-            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Annuler')),
+          TextButton(
+            child: Text('Supprimer',
+                style: TextStyle(color: cs.error)),
             onPressed: () {
               Navigator.of(context).pop();
               provider.deletePurchase(purchase.id!);
@@ -520,4 +630,3 @@ class PurchaseCard extends StatelessWidget {
     );
   }
 }
-

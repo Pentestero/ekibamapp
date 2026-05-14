@@ -1,10 +1,10 @@
-// lib/screens/reports_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:provisions/providers/purchase_provider.dart';
-import 'package:provisions/widgets/supplier_chart.dart'; // Reusing for generic data
-import 'package:provisions/widgets/project_type_chart.dart'; // Reusing for generic data
+import 'package:provisions/widgets/supplier_chart.dart';
+import 'package:provisions/widgets/project_type_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:provisions/widgets/animations.dart';
 
 enum ReportFilter {
   currentMonth,
@@ -32,17 +32,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
     _applyFilter();
   }
 
-  void _applyFilter() {
-    final provider = context.read<PurchaseProvider>();
-    // Logic to filter data from provider based on _selectedFilter
-    // This will likely require new methods in PurchaseProvider to return filtered data
-    // For now, we'll just use the existing totals and will add filtering later if requested.
-    // provider.filterReports(filter: _selectedFilter, startDate: _customStartDate, endDate: _customEndDate);
-  }
+  void _applyFilter() {}
 
   Future<void> _selectCustomDateRange(BuildContext context) async {
     final initialDateRange = DateTimeRange(
-      start: _customStartDate ?? DateTime.now().subtract(const Duration(days: 30)),
+      start: _customStartDate ??
+          DateTime.now().subtract(const Duration(days: 30)),
       end: _customEndDate ?? DateTime.now(),
     );
 
@@ -54,7 +49,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       helpText: 'Sélectionner une plage de dates',
       cancelText: 'Annuler',
       confirmText: 'Confirmer',
-      saveText: 'Enregistrer',
     );
 
     if (newDateRange != null) {
@@ -69,9 +63,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Rapports Avancés'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 24,
+              decoration: BoxDecoration(
+                color: cs.primary,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text('Rapports Avancés'),
+          ],
+        ),
       ),
       body: Consumer<PurchaseProvider>(
         builder: (context, provider, child) {
@@ -79,49 +88,61 @@ class _ReportsScreenState extends State<ReportsScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Placeholder for filtered data - in a real scenario, provider would return filtered maps
-          final Map<String, int> filteredSupplierTotals = provider.supplierTotals;
-          final Map<String, int> filteredProjectTypeTotals = provider.projectTypeTotals;
-          // You'd also need a filtered category total here
-          final Map<String, int> filteredCategoryTotals = provider.categoryTotals; // Use actual category totals
+          final Map<String, int> filteredSupplierTotals =
+              provider.supplierTotals;
+          final Map<String, int> filteredProjectTypeTotals =
+              provider.projectTypeTotals;
+          final Map<String, int> filteredCategoryTotals =
+              provider.categoryTotals;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: StaggeredList(
+              itemDelay: const Duration(milliseconds: 50),
               children: [
-                _buildFilterSection(context),
+                _buildFilterSection(context, cs),
                 const SizedBox(height: 24),
-
                 if (provider.errorMessage.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      'Erreur: ${provider.errorMessage}',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.red),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: cs.error.withAlpha(15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error_outline,
+                              color: cs.error, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(provider.errorMessage,
+                                style: TextStyle(color: cs.error)),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-
-                Text('Dépenses par Catégorie', style: Theme.of(context).textTheme.headlineSmall),
+                _buildSectionHeader(context, 'Dépenses par Catégorie'),
                 const SizedBox(height: 16),
                 SizedBox(
-                  height: 300,
-                  child: SupplierChart(data: filteredCategoryTotals), // Use Category Chart
+                  height: 280,
+                  child: SupplierChart(data: filteredCategoryTotals),
                 ),
-                const SizedBox(height: 24),
-
-                Text('Dépenses par Fournisseur', style: Theme.of(context).textTheme.headlineSmall),
+                const SizedBox(height: 28),
+                _buildSectionHeader(context, 'Dépenses par Fournisseur'),
                 const SizedBox(height: 16),
                 SizedBox(
-                  height: 300,
+                  height: 280,
                   child: SupplierChart(data: filteredSupplierTotals),
                 ),
-                const SizedBox(height: 24),
-
-                Text('Dépenses par Type de Projet', style: Theme.of(context).textTheme.headlineSmall),
+                const SizedBox(height: 28),
+                _buildSectionHeader(
+                    context, 'Dépenses par Type de Projet'),
                 const SizedBox(height: 16),
                 SizedBox(
-                  height: 300,
+                  height: 280,
                   child: ProjectTypeChart(data: filteredProjectTypeTotals),
                 ),
                 const SizedBox(height: 24),
@@ -133,7 +154,29 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildFilterSection(BuildContext context) {
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 24,
+          decoration: BoxDecoration(
+            color: cs.primary,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(title,
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
+
+  Widget _buildFilterSection(BuildContext context, ColorScheme cs) {
     String dateRangeText = 'Sélectionner la période';
     if (_selectedFilter == ReportFilter.currentMonth) {
       dateRangeText = 'Mois en cours';
@@ -143,32 +186,42 @@ class _ReportsScreenState extends State<ReportsScreen> {
       dateRangeText = 'Année en cours';
     } else if (_selectedFilter == ReportFilter.allTime) {
       dateRangeText = 'Depuis toujours';
-    } else if (_selectedFilter == ReportFilter.custom && _customStartDate != null && _customEndDate != null) {
-      dateRangeText = '${DateFormat('dd/MM/yyyy').format(_customStartDate!)} - ${DateFormat('dd/MM/yyyy').format(_customEndDate!)}';
+    } else if (_selectedFilter == ReportFilter.custom &&
+        _customStartDate != null &&
+        _customEndDate != null) {
+      dateRangeText =
+          '${DateFormat('dd/MM/yyyy').format(_customStartDate!)} - ${DateFormat('dd/MM/yyyy').format(_customEndDate!)}';
     }
 
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Filtres de rapport', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 16),
+            _buildSectionHeader(context, 'Filtres de rapport'),
+            const SizedBox(height: 20),
             DropdownButtonFormField<ReportFilter>(
               initialValue: _selectedFilter,
               decoration: const InputDecoration(
                 labelText: 'Période',
-                border: OutlineInputBorder(),
               ),
               items: const [
-                DropdownMenuItem(value: ReportFilter.currentMonth, child: Text('Mois en cours')),
-                DropdownMenuItem(value: ReportFilter.last3Months, child: Text('3 derniers mois')),
-                DropdownMenuItem(value: ReportFilter.currentYear, child: Text('Année en cours')),
-                DropdownMenuItem(value: ReportFilter.allTime, child: Text('Depuis toujours')),
-                DropdownMenuItem(value: ReportFilter.custom, child: Text('Plage personnalisée')),
+                DropdownMenuItem(
+                    value: ReportFilter.currentMonth,
+                    child: Text('Mois en cours')),
+                DropdownMenuItem(
+                    value: ReportFilter.last3Months,
+                    child: Text('3 derniers mois')),
+                DropdownMenuItem(
+                    value: ReportFilter.currentYear,
+                    child: Text('Année en cours')),
+                DropdownMenuItem(
+                    value: ReportFilter.allTime,
+                    child: Text('Depuis toujours')),
+                DropdownMenuItem(
+                    value: ReportFilter.custom,
+                    child: Text('Plage personnalisée')),
               ],
               onChanged: (filter) {
                 if (filter != null) {
@@ -185,13 +238,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 }
               },
             ),
-            if (_selectedFilter == ReportFilter.custom && (_customStartDate == null || _customEndDate == null))
+            if (_selectedFilter == ReportFilter.custom &&
+                (_customStartDate == null ||
+                    _customEndDate == null))
               Padding(
                 padding: const EdgeInsets.only(top: 16),
                 child: Center(
                   child: ElevatedButton(
-                    onPressed: () => _selectCustomDateRange(context),
-                    child: const Text('Sélectionner la plage personnalisée'),
+                    onPressed: () =>
+                        _selectCustomDateRange(context),
+                    child:
+                        const Text('Sélectionner la plage personnalisée'),
                   ),
                 ),
               ),

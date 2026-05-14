@@ -1,20 +1,34 @@
-// lib/screens/library_management_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provisions/models/library_item.dart';
 import 'package:provisions/providers/purchase_provider.dart';
+import 'package:provisions/widgets/animations.dart';
 
 class LibraryManagementScreen extends StatelessWidget {
   const LibraryManagementScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ma Bibliothèque d\'Articles'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 24,
+              decoration: BoxDecoration(
+                color: cs.primary,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text("Ma Bibliothèque d'Articles"),
+          ],
+        ),
       ),
       body: Consumer<PurchaseProvider>(
         builder: (context, provider, child) {
@@ -22,43 +36,112 @@ class LibraryManagementScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (provider.libraryItems.isEmpty) {
-            return const Center(
-              child: Text('Votre bibliothèque est vide. Ajoutez un premier article !'),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: cs.primary.withAlpha(15),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Icon(Icons.library_books_outlined,
+                        size: 36, color: cs.primary.withAlpha(120)),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Votre bibliothèque est vide.',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Text('Ajoutez un premier article !',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: cs.onSurface.withAlpha(150))),
+                ],
+              ),
             );
           }
           return ListView.builder(
+            padding: const EdgeInsets.all(16),
             itemCount: provider.libraryItems.length,
             itemBuilder: (context, index) {
               final item = provider.libraryItems[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  child: ListTile(
-                                    key: ValueKey(item.id), // Added key for list item optimization
-                                    title: Text(item.templateName),
-                                    subtitle: Text.rich(
-                                      TextSpan(
-                                        children: [
-                                          TextSpan(text: '${item.category} > ${item.subCategory1} ${item.subCategory2 != null ? '> ${item.subCategory2}' : ''}'),
-                                          const TextSpan(text: '\n'),
-                                          TextSpan(text: '${item.unitPrice != null ? 'Prix: ${NumberFormat('#,##0', 'fr_FR').format(item.unitPrice)} XAF' : ''} ${item.unit != null ? '/ ${item.unit}' : ''}'),
-                                        ],
-                                      ),
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit),
-                                          onPressed: () => _showAddEditLibraryItemDialog(context, item: item),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.delete),
-                                          onPressed: () => _confirmDelete(context, item),
-                                        ),
-                                      ],
-                                    ),
-                                    isThreeLine: true,
-                                  ),              );
+              return StaggeredItem(
+                index: index,
+                itemDelay: const Duration(milliseconds: 40),
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.easeOutCubic,
+                child: ScaleTap(
+                  child: Card(
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    child: ListTile(
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      key: ValueKey(item.id),
+                      leading: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: cs.primary.withAlpha(15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.inventory_2_outlined,
+                            color: cs.primary, size: 22),
+                      ),
+                      title: Text(item.templateName,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w600)),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          Text(
+                            '${item.category} > ${item.subCategory1}${item.subCategory2 != null ? ' > ${item.subCategory2}' : ''}',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: cs.onSurface.withAlpha(150)),
+                          ),
+                          if (item.unitPrice != null)
+                            Text(
+                              '${NumberFormat('#,##0', 'fr_FR').format(item.unitPrice)} XAF${item.unit != null ? ' / ${item.unit}' : ''}',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.primary),
+                            ),
+                        ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit_outlined,
+                                color: cs.primary, size: 20),
+                            onPressed: () =>
+                                _showAddEditLibraryItemDialog(context,
+                                    item: item),
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            icon: Icon(Icons.delete_outline,
+                                color: cs.error, size: 20),
+                            onPressed: () =>
+                                _confirmDelete(context, item, cs),
+                          ),
+                        ],
+                      ),
+                      isThreeLine: item.unitPrice != null,
+                    ),
+                  ),
+                ),
+              );
             },
           );
         },
@@ -70,7 +153,8 @@ class LibraryManagementScreen extends StatelessWidget {
     );
   }
 
-  void _showAddEditLibraryItemDialog(BuildContext context, {LibraryItem? item}) {
+  void _showAddEditLibraryItemDialog(BuildContext context,
+      {LibraryItem? item}) {
     showDialog(
       context: context,
       builder: (_) => ChangeNotifierProvider.value(
@@ -80,12 +164,13 @@ class LibraryManagementScreen extends StatelessWidget {
     );
   }
 
-  void _confirmDelete(BuildContext context, LibraryItem item) {
+  void _confirmDelete(BuildContext context, LibraryItem item, ColorScheme cs) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Supprimer l\'article'),
-        content: Text('Êtes-vous sûr de vouloir supprimer "${item.templateName}" de votre bibliothèque ?'),
+        title: const Text("Supprimer l'article"),
+        content: Text(
+            'Êtes-vous sûr de vouloir supprimer "${item.templateName}" de votre bibliothèque ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -96,6 +181,10 @@ class LibraryManagementScreen extends StatelessWidget {
               context.read<PurchaseProvider>().deleteLibraryItem(item.id!);
               Navigator.of(ctx).pop();
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.error,
+              foregroundColor: cs.onError,
+            ),
             child: const Text('Supprimer'),
           ),
         ],
@@ -109,10 +198,12 @@ class AddEditLibraryItemDialog extends StatefulWidget {
   const AddEditLibraryItemDialog({super.key, this.item});
 
   @override
-  State<AddEditLibraryItemDialog> createState() => _AddEditLibraryItemDialogState();
+  State<AddEditLibraryItemDialog> createState() =>
+      _AddEditLibraryItemDialogState();
 }
 
-class _AddEditLibraryItemDialogState extends State<AddEditLibraryItemDialog> {
+class _AddEditLibraryItemDialogState
+    extends State<AddEditLibraryItemDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _templateNameController;
   String? _selectedCategory;
@@ -124,12 +215,15 @@ class _AddEditLibraryItemDialogState extends State<AddEditLibraryItemDialog> {
   @override
   void initState() {
     super.initState();
-    _templateNameController = TextEditingController(text: widget.item?.templateName ?? '');
+    _templateNameController =
+        TextEditingController(text: widget.item?.templateName ?? '');
     _selectedCategory = widget.item?.category;
     _selectedSubCategory1 = widget.item?.subCategory1;
     _selectedSubCategory2 = widget.item?.subCategory2;
-    _unitPriceController = TextEditingController(text: widget.item?.unitPrice?.toString() ?? '');
-    _unitController = TextEditingController(text: widget.item?.unit ?? '');
+    _unitPriceController =
+        TextEditingController(text: widget.item?.unitPrice?.toString() ?? '');
+    _unitController =
+        TextEditingController(text: widget.item?.unit ?? '');
   }
 
   @override
@@ -146,9 +240,10 @@ class _AddEditLibraryItemDialogState extends State<AddEditLibraryItemDialog> {
       final currentUserId = provider.currentUserId;
 
       if (currentUserId == null) {
-        // Handle error: user not logged in
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Utilisateur non authentifié.'), backgroundColor: Colors.red),
+          const SnackBar(
+              content: Text('Utilisateur non authentifié.'),
+              backgroundColor: Colors.red),
         );
         return;
       }
@@ -180,18 +275,25 @@ class _AddEditLibraryItemDialogState extends State<AddEditLibraryItemDialog> {
     final categories = provider.categories.keys.toList();
 
     List<String> subCategories1 = [];
-    if (_selectedCategory != null && provider.categories[_selectedCategory] != null) {
-      subCategories1 = provider.categories[_selectedCategory]!.keys.toList();
+    if (_selectedCategory != null &&
+        provider.categories[_selectedCategory] != null) {
+      subCategories1 =
+          provider.categories[_selectedCategory]!.keys.toList();
     }
 
     List<String> subCategories2 = [];
-    if (_selectedCategory != null && _selectedSubCategory1 != null &&
-        provider.categories[_selectedCategory]?[_selectedSubCategory1] != null) {
-      subCategories2 = provider.categories[_selectedCategory]![_selectedSubCategory1]!;
+    if (_selectedCategory != null &&
+        _selectedSubCategory1 != null &&
+        provider.categories[_selectedCategory]?[_selectedSubCategory1] !=
+            null) {
+      subCategories2 =
+          provider.categories[_selectedCategory]![_selectedSubCategory1]!;
     }
 
     return AlertDialog(
-      title: Text(widget.item == null ? 'Ajouter un article à la bibliothèque' : 'Modifier l\'article'),
+      title: Text(widget.item == null
+          ? 'Ajouter un article'
+          : "Modifier l'article"),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -200,7 +302,10 @@ class _AddEditLibraryItemDialogState extends State<AddEditLibraryItemDialog> {
             children: [
               TextFormField(
                 controller: _templateNameController,
-                decoration: const InputDecoration(labelText: 'Nom du modèle (ex: Stylo Bic Bleu)'),
+                decoration: const InputDecoration(
+                  labelText: 'Nom du modèle',
+                  hintText: 'ex: Stylo Bic Bleu',
+                ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Le nom du modèle est requis';
@@ -211,8 +316,12 @@ class _AddEditLibraryItemDialogState extends State<AddEditLibraryItemDialog> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: _selectedCategory,
-                decoration: const InputDecoration(labelText: 'Catégorie'),
-                items: categories.map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
+                decoration:
+                    const InputDecoration(labelText: 'Catégorie'),
+                items: categories
+                    .map((cat) =>
+                        DropdownMenuItem(value: cat, child: Text(cat)))
+                    .toList(),
                 onChanged: (value) {
                   setState(() {
                     _selectedCategory = value;
@@ -220,28 +329,38 @@ class _AddEditLibraryItemDialogState extends State<AddEditLibraryItemDialog> {
                     _selectedSubCategory2 = null;
                   });
                 },
-                validator: (value) => value == null ? 'Catégorie requise' : null,
+                validator: (value) =>
+                    value == null ? 'Catégorie requise' : null,
               ),
               const SizedBox(height: 16),
               if (subCategories1.isNotEmpty)
                 DropdownButtonFormField<String>(
                   initialValue: _selectedSubCategory1,
-                  decoration: const InputDecoration(labelText: 'Sous-catégorie 1'),
-                  items: subCategories1.map((sub1) => DropdownMenuItem(value: sub1, child: Text(sub1))).toList(),
+                  decoration: const InputDecoration(
+                      labelText: 'Sous-catégorie 1'),
+                  items: subCategories1
+                      .map((sub1) => DropdownMenuItem(
+                          value: sub1, child: Text(sub1)))
+                      .toList(),
                   onChanged: (value) {
                     setState(() {
                       _selectedSubCategory1 = value;
                       _selectedSubCategory2 = null;
                     });
                   },
-                  validator: (value) => value == null ? 'Sous-catégorie 1 requise' : null,
+                  validator: (value) =>
+                      value == null ? 'Sous-catégorie 1 requise' : null,
                 ),
               const SizedBox(height: 16),
               if (subCategories2.isNotEmpty)
                 DropdownButtonFormField<String>(
                   initialValue: _selectedSubCategory2,
-                  decoration: const InputDecoration(labelText: 'Sous-catégorie 2 / Article'),
-                  items: subCategories2.map((sub2) => DropdownMenuItem(value: sub2, child: Text(sub2))).toList(),
+                  decoration: const InputDecoration(
+                      labelText: 'Sous-catégorie 2 / Article'),
+                  items: subCategories2
+                      .map((sub2) => DropdownMenuItem(
+                          value: sub2, child: Text(sub2)))
+                      .toList(),
                   onChanged: (value) {
                     setState(() {
                       _selectedSubCategory2 = value;
@@ -251,14 +370,18 @@ class _AddEditLibraryItemDialogState extends State<AddEditLibraryItemDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _unitPriceController,
-                decoration: const InputDecoration(labelText: 'Prix Unitaire (XAF)'),
+                decoration: const InputDecoration(
+                  labelText: 'Prix Unitaire (XAF)',
+                ),
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _unitController,
-                decoration: const InputDecoration(labelText: 'Unité (ex: pièce, kg)'),
+                decoration: const InputDecoration(
+                  labelText: 'Unité (ex: pièce, kg)',
+                ),
               ),
             ],
           ),

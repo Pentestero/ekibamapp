@@ -12,30 +12,46 @@ class AppBrand extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: Image.asset(
-            'assets/icons/EKIBAM.jpg',
-            height: height,
-            width: height,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stack) {
-              return Container(
-                height: height,
-                width: height,
-                color: color.withValues(alpha: 0.1),
-                alignment: Alignment.center,
-                child: Icon(Icons.store, color: color, size: height * 0.7),
-              );
-            },
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: color.withAlpha(40),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              'assets/icons/EKIBAM.jpg',
+              height: height,
+              width: height,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stack) {
+                return Container(
+                  height: height,
+                  width: height,
+                  decoration: BoxDecoration(
+                    color: color.withAlpha(15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(Icons.store, color: color, size: height * 0.6),
+                );
+              },
+            ),
           ),
         ),
         if (showText) ...[
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Text(
             'ekibam',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
                 ),
           ),
         ]

@@ -1,13 +1,15 @@
 {
-    "name": "ekibam",
-    "short_name": "ekibam",
+    "name": "EKIBAM - Gestion des Achats",
+    "short_name": "EKIBAM",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "ekibam • Gestion des achats et export Excel.",
+    "background_color": "#3A86FF",
+    "theme_color": "#3A86FF",
+    "description": "Gérez vos achats d'atelier simplement : formulaire, historique, exports Excel/PDF, tableau de bord.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
+    "categories": ["business", "productivity", "finance"],
+    "lang": "fr-FR",
     "icons": [
         {
             "src": "icons/Icon-192.png",

@@ -88,14 +88,14 @@ class PdfService {
                       color: PdfColors.indigo800)),
               pw.SizedBox(height: 8),
               pw.Text('Ref DA: ${purchase.refDA ?? 'N/A'}',
-                  style: const pw.TextStyle(fontSize: 10)), // Smaller text
+                  style: pw.TextStyle(fontSize: 10)), // Smaller text
               pw.Text(
                   'Créé le: ${DateFormat('dd/MM/yyyy').format(purchase.date)}', // Changed label
-                  style: const pw.TextStyle(fontSize: 10)), // Smaller text
+                  style: pw.TextStyle(fontSize: 10)), // Smaller text
               if (isModified) // Conditionally display modified date
                 pw.Text(
                     'Modifié le: ${DateFormat('dd/MM/yyyy').format(purchase.modifiedAt!)}',
-                    style: const pw.TextStyle(fontSize: 10)),
+                    style: pw.TextStyle(fontSize: 10)),
             ],
           ),
         ],
@@ -180,35 +180,35 @@ class PdfService {
             border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5)),
           ),
           children: [
-            pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(item.category, style: const pw.TextStyle(fontSize: 8))),
-            pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(item.subCategory1, style: const pw.TextStyle(fontSize: 8))),
-            pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(item.subCategory2 ?? '', style: const pw.TextStyle(fontSize: 8))),
+            pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(item.category, style: pw.TextStyle(fontSize: 8))),
+            pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(item.subCategory1, style: pw.TextStyle(fontSize: 8))),
+            pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(item.subCategory2 ?? '', style: pw.TextStyle(fontSize: 8))),
             pw.Padding(
               padding: const pw.EdgeInsets.all(4),
               child: pw.Text(
                 DateFormat('dd/MM/yy').format(item.expenseDate),
-                style: const pw.TextStyle(fontSize: 8),
+                style: pw.TextStyle(fontSize: 8),
               ),
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(4),
               child: pw.Align(
                 alignment: pw.Alignment.centerRight,
-                child: pw.Text(item.quantity.toString(), style: const pw.TextStyle(fontSize: 8)),
+                child: pw.Text(item.quantity.toString(), style: pw.TextStyle(fontSize: 8)),
               ),
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(4),
               child: pw.Align(
                 alignment: pw.Alignment.centerRight,
-                child: pw.Text(NumberFormat('#,##0', 'fr_FR').format(item.unitPrice), style: const pw.TextStyle(fontSize: 8)),
+                child: pw.Text(NumberFormat('#,##0', 'fr_FR').format(item.unitPrice), style: pw.TextStyle(fontSize: 8)),
               ),
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(4),
               child: pw.Align(
                 alignment: pw.Alignment.centerRight,
-                child: pw.Text(NumberFormat('#,##0', 'fr_FR').format(item.total), style: const pw.TextStyle(fontSize: 8)),
+                child: pw.Text(NumberFormat('#,##0', 'fr_FR').format(item.total), style: pw.TextStyle(fontSize: 8)),
               ),
             ),
           ],
@@ -250,7 +250,7 @@ class PdfService {
         pw.SizedBox(height: 5),
         if (purchase.comments.isNotEmpty)
           pw.Text('Commentaire: ${purchase.comments}',
-              style: const pw.TextStyle(fontStyle: pw.FontStyle.italic, fontSize: 9)), // Smaller text
+              style: pw.TextStyle(fontStyle: pw.FontStyle.italic, fontSize: 9)), // Smaller text
         pw.SizedBox(height: 5),
         pw.Text('Par article:',
             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)), // Smaller text
@@ -259,7 +259,7 @@ class PdfService {
             .map(
               (item) => pw.Text(
                   '- ${item.category}/${item.subCategory1}${item.subCategory2 != null ? '/${item.subCategory2}' : ''}: ${item.comment}',
-                  style: const pw.TextStyle(fontSize: 8)), // Smaller text
+                  style: pw.TextStyle(fontSize: 8)), // Smaller text
             ),
       ],
     );
@@ -271,11 +271,11 @@ class PdfService {
       children: [
         pw.Divider(thickness: 0.5), // Thinner divider
         pw.SizedBox(height: 5),
-        pw.Text("EKIBAM SARL - EDEA, Cameroun", style: const pw.TextStyle(fontSize: 8)), // Smaller text
+        pw.Text("EKIBAM SARL - EDEA, Cameroun", style: pw.TextStyle(fontSize: 8)), // Smaller text
         pw.SizedBox(height: 5),
         pw.Align(
           alignment: pw.Alignment.bottomRight,
-          child: pw.Text('Page ${context.pageNumber} sur ${context.pagesCount}', style: const pw.TextStyle(fontSize: 8)), // Smaller text
+          child: pw.Text('Page ${context.pageNumber} sur ${context.pagesCount}', style: pw.TextStyle(fontSize: 8)), // Smaller text
         )
       ],
     );

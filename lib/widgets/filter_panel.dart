@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-// Data classes and enums for managing filter state
 enum SortOption { dateDesc, dateAsc, amountDesc, amountAsc }
 
 class FilterState {
@@ -44,7 +43,6 @@ class FilterState {
   }
 }
 
-// The Filter Panel Widget
 class FilterPanel extends StatefulWidget {
   final FilterState initialFilters;
   final List<int> availableYears;
@@ -71,7 +69,8 @@ class _FilterPanelState extends State<FilterPanel> {
   void initState() {
     super.initState();
     _currentFilters = widget.initialFilters;
-    _searchController = TextEditingController(text: _currentFilters.searchQuery);
+    _searchController =
+        TextEditingController(text: _currentFilters.searchQuery);
     _startDateController = TextEditingController(
       text: _currentFilters.startDate != null
           ? DateFormat('dd/MM/yyyy').format(_currentFilters.startDate!)
@@ -122,21 +121,19 @@ class _FilterPanelState extends State<FilterPanel> {
       resetStartDate: resetStartDate,
       resetEndDate: resetEndDate,
     );
-    debugPrint('FilterPanel _currentFilters updated: '
-        'searchQuery: ${(_currentFilters.searchQuery.isEmpty) ? 'empty' : _currentFilters.searchQuery}, '
-        'year: ${_currentFilters.year ?? 'null'}, '
-        'month: ${_currentFilters.month ?? 'null'}, '
-        'startDate: ${_currentFilters.startDate?.toIso8601String() ?? 'null'}, '
-        'endDate: ${_currentFilters.endDate?.toIso8601String() ?? 'null'}, '
-        'sortOption: ${_currentFilters.sortOption}');
+    debugPrint(
+        'FilterPanel _currentFilters updated: searchQuery: ${(_currentFilters.searchQuery.isEmpty) ? 'empty' : _currentFilters.searchQuery}, year: ${_currentFilters.year ?? 'null'}, month: ${_currentFilters.month ?? 'null'}, startDate: ${_currentFilters.startDate?.toIso8601String() ?? 'null'}, endDate: ${_currentFilters.endDate?.toIso8601String() ?? 'null'}, sortOption: ${_currentFilters.sortOption}');
     widget.onFilterChanged(_currentFilters);
-    setState(() {}); // Update the panel's own UI
+    setState(() {});
   }
 
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: (isStartDate ? _currentFilters.startDate : _currentFilters.endDate) ?? DateTime.now(),
+      initialDate: (isStartDate
+              ? _currentFilters.startDate
+              : _currentFilters.endDate) ??
+          DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
     );
@@ -159,7 +156,7 @@ class _FilterPanelState extends State<FilterPanel> {
     ];
 
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,7 +164,11 @@ class _FilterPanelState extends State<FilterPanel> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Filtres & Tri', style: Theme.of(context).textTheme.headlineSmall),
+              Text('Filtres & Tri',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w700)),
               TextButton(
                 onPressed: () {
                   _searchController.clear();
@@ -183,16 +184,15 @@ class _FilterPanelState extends State<FilterPanel> {
                   );
                 },
                 child: const Text('Réinitialiser'),
-              )
+              ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           TextFormField(
             controller: _searchController,
             decoration: InputDecoration(
               labelText: 'Rechercher (Réf, Demandeur, etc.)',
               prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear),
@@ -209,24 +209,35 @@ class _FilterPanelState extends State<FilterPanel> {
               Expanded(
                 child: DropdownButtonFormField<int?>(
                   initialValue: _currentFilters.year,
-                  decoration: InputDecoration(labelText: 'Année', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
+                  decoration:
+                      const InputDecoration(labelText: 'Année'),
                   items: [
-                    const DropdownMenuItem<int?>(value: null, child: Text('Toutes')),
-                    ...widget.availableYears.map((y) => DropdownMenuItem(value: y, child: Text(y.toString()))),
+                    const DropdownMenuItem<int?>(
+                        value: null, child: Text('Toutes')),
+                    ...widget.availableYears.map((y) =>
+                        DropdownMenuItem(
+                            value: y, child: Text(y.toString()))),
                   ],
-                  onChanged: (value) => _updateFilters(year: value, resetYear: value == null),
+                  onChanged: (value) =>
+                      _updateFilters(year: value, resetYear: value == null),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: DropdownButtonFormField<int?>(
                   initialValue: _currentFilters.month,
-                  decoration: InputDecoration(labelText: 'Mois', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
+                  decoration:
+                      const InputDecoration(labelText: 'Mois'),
                   items: [
-                    const DropdownMenuItem<int?>(value: null, child: Text('Tous')),
-                    ...List.generate(12, (index) => DropdownMenuItem(value: index + 1, child: Text(monthNames[index]))),
+                    const DropdownMenuItem<int?>(
+                        value: null, child: Text('Tous')),
+                    ...List.generate(12,
+                        (index) => DropdownMenuItem(
+                            value: index + 1,
+                            child: Text(monthNames[index]))),
                   ],
-                  onChanged: (value) => _updateFilters(month: value, resetMonth: value == null),
+                  onChanged: (value) =>
+                      _updateFilters(month: value, resetMonth: value == null),
                 ),
               ),
             ],
@@ -241,13 +252,13 @@ class _FilterPanelState extends State<FilterPanel> {
                   decoration: InputDecoration(
                     labelText: 'Date de début',
                     prefixIcon: const Icon(Icons.calendar_today),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     suffixIcon: _startDateController.text.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear),
                             onPressed: () {
                               _startDateController.clear();
-                              _updateFilters(startDate: null, resetStartDate: true);
+                              _updateFilters(
+                                  startDate: null, resetStartDate: true);
                             },
                           )
                         : null,
@@ -263,13 +274,13 @@ class _FilterPanelState extends State<FilterPanel> {
                   decoration: InputDecoration(
                     labelText: 'Date de fin',
                     prefixIcon: const Icon(Icons.calendar_today),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     suffixIcon: _endDateController.text.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear),
                             onPressed: () {
                               _endDateController.clear();
-                              _updateFilters(endDate: null, resetEndDate: true);
+                              _updateFilters(
+                                  endDate: null, resetEndDate: true);
                             },
                           )
                         : null,
@@ -280,21 +291,37 @@ class _FilterPanelState extends State<FilterPanel> {
             ],
           ),
           const SizedBox(height: 24),
-          Text('Trier par', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          Text('Trier par',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
           SegmentedButton<SortOption>(
             segments: const [
-              ButtonSegment(value: SortOption.dateDesc, label: Text('Date'), icon: Icon(Icons.arrow_downward)),
-              ButtonSegment(value: SortOption.dateAsc, label: Text('Date'), icon: Icon(Icons.arrow_upward)),
-              ButtonSegment(value: SortOption.amountDesc, label: Text('Montant'), icon: Icon(Icons.arrow_downward)),
-              ButtonSegment(value: SortOption.amountAsc, label: Text('Montant'), icon: Icon(Icons.arrow_upward)),
+              ButtonSegment(
+                  value: SortOption.dateDesc,
+                  label: Text('Date'),
+                  icon: Icon(Icons.arrow_downward)),
+              ButtonSegment(
+                  value: SortOption.dateAsc,
+                  label: Text('Date'),
+                  icon: Icon(Icons.arrow_upward)),
+              ButtonSegment(
+                  value: SortOption.amountDesc,
+                  label: Text('Montant'),
+                  icon: Icon(Icons.arrow_downward)),
+              ButtonSegment(
+                  value: SortOption.amountAsc,
+                  label: Text('Montant'),
+                  icon: Icon(Icons.arrow_upward)),
             ],
             selected: {_currentFilters.sortOption},
             onSelectionChanged: (newSelection) {
               _updateFilters(sortOption: newSelection.first);
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
         ],
       ),
     );

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provisions/screens/signin_screen.dart';
 import 'package:provisions/screens/signup_screen.dart';
 import 'package:provisions/widgets/app_brand.dart';
+import 'package:provisions/widgets/animations.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -20,13 +22,13 @@ class _AuthScreenState extends State<AuthScreen>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 900),
       vsync: this,
     );
     _fadeAnimation =
-        CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+        CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.2), // Slight slide from bottom
+      begin: const Offset(0, 0.12),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _controller,
@@ -43,131 +45,208 @@ class _AuthScreenState extends State<AuthScreen>
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor:
-          Theme.of(context).colorScheme.surface, // Use theme background color
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth >= 600) {
-            // Desktop/Wide screen layout
-            return Row(
-              children: [
-                Expanded(
-                  flex: 1,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      image: const DecorationImage(
-                        image: AssetImage(
-                            'images/EKIBAM.jpg'), // Use your app's background image
-                        fit: BoxFit.cover,
-                        opacity: 0.3,
-                      ),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AppBrand(
-                            height: 80, // Larger logo for desktop
-                            showText: true,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              cs.primary.withAlpha(20),
+              Theme.of(context).scaffoldBackgroundColor,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= 600) {
+                return Row(
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              cs.primary,
+                              cs.primary.withAlpha(200),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Gérez vos approvisionnements\nsimplement et efficacement',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints:
-                          const BoxConstraints(maxWidth: 400), // Max width for form on desktop
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(24.0),
-                        child: FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: SlideTransition(
-                            position: _slideAnimation,
-                            child: _buildAuthButtons(context),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const AppBrand(height: 80, showText: true),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Gérez vos approvisionnements\nsimplement et efficacement',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(
+                                      color: cs.onPrimary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'EKIBAM',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(
+                                      color: cs.onPrimary.withAlpha(180),
+                                      letterSpacing: 4,
+                                      fontWeight: FontWeight.w300,
+                                    ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
+                    Expanded(
+                      flex: 1,
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints:
+                              const BoxConstraints(maxWidth: 400),
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(32),
+                            child: FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: SlideTransition(
+                                position: _slideAnimation,
+                                child: _buildAuthButtons(context),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SlideTransition(
+                        position: _slideAnimation,
+                        child: _buildAuthButtons(context),
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            );
-          } else {
-            // Mobile/Narrow screen layout
-            return Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: _buildAuthButtons(context),
-                  ),
-                ),
-              ),
-            );
-          }
-        },
+                );
+              }
+            },
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildAuthButtons(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (MediaQuery.of(context).size.width < 600) ...[
-          // Only show AppBrand on mobile layout
-          const AppBrand(),
+        if (isMobile) ...[
+          const ScaleIn(
+            begin: 0.9,
+            child: AppBrand(height: 80, showText: true),
+          ),
           const SizedBox(height: 16),
           Text(
-            'Gérez vos approvisionnements simplement',
+            'Gérez vos approvisionnements\nsimplement et efficacement',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color: cs.onSurface.withAlpha(180),
+                  height: 1.4,
                 ),
           ),
           const SizedBox(height: 48),
         ],
-        ElevatedButton(
-          onPressed: () {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const SignUpScreen()));
-          },
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: cs.primary.withAlpha(10),
+            borderRadius: BorderRadius.circular(18),
           ),
-          child: const Text('S\'inscrire'),
+          child: ScaleTap(
+            hapticFeedback: true,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const SignUpScreen()));
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: LinearGradient(
+                  colors: [cs.primary, cs.secondary],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: cs.primary.withAlpha(60),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Text(
+                "S'inscrire",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: cs.onPrimary,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 16),
-        OutlinedButton(
-          onPressed: () {
+        ScaleTap(
+          hapticFeedback: true,
+          onTap: () {
+            HapticFeedback.lightImpact();
             Navigator.of(context)
                 .push(MaterialPageRoute(builder: (_) => const SignInScreen()));
           },
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.primary,
-            side: BorderSide(color: Theme.of(context).colorScheme.primary),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            textStyle: const TextStyle(fontSize: 18),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: cs.primary.withAlpha(80), width: 1.5),
+            ),
+            child: Text(
+              'Se connecter',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: cs.primary,
+                letterSpacing: 0.3,
+              ),
+            ),
           ),
-          child: const Text('Se connecter'),
         ),
       ],
     );
