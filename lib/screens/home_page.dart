@@ -79,7 +79,11 @@ class _HomePageState extends State<HomePage> {
 
   void _buildNavItems() {
     _screens = [
-      DashboardScreen(navigateToHistory: () => _navigateTo(2)),
+      DashboardScreen(
+        navigateToHistory: () => _navigateTo(2),
+        navigateToNewPurchase: () => _navigateTo(1),
+        isAdmin: _isAdmin,
+      ),
       PurchaseFormScreen(onSubmissionSuccess: _handlePurchaseSubmissionSuccess),
       HistoryScreen(onEditPurchase: _onEditPurchaseFromHistory),
       if (_isAdmin) const AdminDashboardScreen(),

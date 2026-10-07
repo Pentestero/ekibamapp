@@ -196,7 +196,7 @@ class _AuthScreenState extends State<AuthScreen>
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 gradient: LinearGradient(
-                  colors: [cs.primary, cs.secondary],
+                  colors: [cs.primary, cs.secondaryContainer],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),

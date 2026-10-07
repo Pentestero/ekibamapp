@@ -110,7 +110,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                         Container(
                           padding: const EdgeInsets.all(28),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).cardTheme.color,
+                            color: cs.surfaceContainerLowest,
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
                               color: cs.primary.withAlpha(15),
@@ -176,7 +176,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                                     child: Container(
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: (_isSuccess ? Colors.green : cs.error)
+                                        color: (_isSuccess ? cs.primary : cs.error)
                                             .withAlpha(15),
                                         borderRadius:
                                             BorderRadius.circular(12),
@@ -188,7 +188,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                                                 ? Icons.check_circle_outline
                                                 : Icons.error_outline,
                                             color: _isSuccess
-                                                ? Colors.green
+                                                ? cs.primary
                                                 : cs.error,
                                             size: 20,
                                           ),
@@ -198,7 +198,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                                               _message!,
                                               style: TextStyle(
                                                 color: _isSuccess
-                                                    ? Colors.green.shade700
+                                                    ? cs.primary
                                                     : cs.error,
                                                 fontSize: 14,
                                               ),
@@ -214,7 +214,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen>
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(14),
                                     gradient: LinearGradient(
-                                      colors: [cs.primary, cs.secondary],
+                                      colors: [
+                                        cs.primary,
+                                        cs.secondaryContainer
+                                      ],
                                       begin: Alignment.centerLeft,
                                       end: Alignment.centerRight,
                                     ),

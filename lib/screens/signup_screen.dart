@@ -203,7 +203,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                         Container(
                           padding: const EdgeInsets.all(28),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).cardTheme.color,
+                            color: cs.surfaceContainerLowest,
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
                               color: cs.primary.withAlpha(15),
@@ -316,7 +316,10 @@ class _SignUpScreenState extends State<SignUpScreen>
                                       borderRadius:
                                           BorderRadius.circular(14),
                                       gradient: LinearGradient(
-                                        colors: [cs.primary, cs.secondary],
+                                        colors: [
+                                          cs.primary,
+                                          cs.secondaryContainer
+                                        ],
                                         begin: Alignment.centerLeft,
                                         end: Alignment.centerRight,
                                       ),

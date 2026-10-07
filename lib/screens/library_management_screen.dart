@@ -241,9 +241,9 @@ class _AddEditLibraryItemDialogState
 
       if (currentUserId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Utilisateur non authentifié.'),
-              backgroundColor: Colors.red),
+          SnackBar(
+              content: const Text('Utilisateur non authentifié.'),
+              backgroundColor: Theme.of(context).colorScheme.error),
         );
         return;
       }
