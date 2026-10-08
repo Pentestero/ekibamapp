@@ -1603,6 +1603,162 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
     );
   }
 
+  Future<void> _pickCategory(
+      BuildContext context, PurchaseProvider provider) async {
+    final cs = Theme.of(context).colorScheme;
+    final categories = provider.categories;
+    if (categories.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content:
+                Text('Aucune catégorie disponible. Ajoutez-en une via le +.')),
+      );
+      return;
+    }
+
+    final item = provider.itemsBuilder[widget.index];
+    String? selCat =
+        categories.containsKey(item.category) ? item.category : categories.keys.first;
+
+    List<String> sub1For(String? c) {
+      if (c == null) return <String>[];
+      return categories[c]?.keys.toList() ?? <String>[];
+    }
+
+    List<String> sub2For(String? c, String? s1) {
+      if (c == null || s1 == null) return <String>[];
+      return categories[c]?[s1] ?? <String>[];
+    }
+
+    String? selSub1 = sub1For(selCat).contains(item.subCategory1)
+        ? item.subCategory1
+        : (sub1For(selCat).isNotEmpty ? sub1For(selCat).first : '');
+    List<String> sub2List = sub2For(selCat, selSub1);
+    String? selSub2 = sub2List.contains(item.subCategory2)
+        ? item.subCategory2
+        : (sub2List.isNotEmpty ? sub2List.first : null);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: cs.surfaceContainerLowest,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final sub1List = sub1For(selCat);
+            final sub2Items = sub2For(selCat, selSub1);
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                    20, 16, 20, 16 + MediaQuery.of(context).viewInsets.bottom),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: cs.primaryContainer,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text('Catégorie',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: selCat,
+                      isExpanded: true,
+                      decoration:
+                          const InputDecoration(labelText: 'Catégorie'),
+                      items: categories.keys
+                          .map((c) =>
+                              DropdownMenuItem(value: c, child: Text(c)))
+                          .toList(),
+                      onChanged: (value) => setSheetState(() {
+                        selCat = value;
+                        final s1 = sub1For(value);
+                        selSub1 = s1.isNotEmpty ? s1.first : '';
+                        final s2 = sub2For(value, selSub1);
+                        selSub2 = s2.isNotEmpty ? s2.first : null;
+                      }),
+                    ),
+                    if (sub1List.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue:
+                            sub1List.contains(selSub1) ? selSub1 : sub1List.first,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                            labelText: 'Sous-catégorie 1'),
+                        items: sub1List
+                            .map((s) =>
+                                DropdownMenuItem(value: s, child: Text(s)))
+                            .toList(),
+                        onChanged: (value) => setSheetState(() {
+                          selSub1 = value;
+                          final s2 = sub2For(selCat, value);
+                          selSub2 = s2.isNotEmpty ? s2.first : null;
+                        }),
+                      ),
+                    ],
+                    if (sub2Items.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: sub2Items.contains(selSub2)
+                            ? selSub2
+                            : sub2Items.first,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                            labelText: 'Sous-catégorie 2 / Article'),
+                        items: sub2Items
+                            .map((s) =>
+                                DropdownMenuItem(value: s, child: Text(s)))
+                            .toList(),
+                        onChanged: (value) =>
+                            setSheetState(() => selSub2 = value),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (selCat != null) {
+                            provider.updateItem(
+                              widget.index,
+                              category: selCat,
+                              subCategory1: selSub1 ?? '',
+                              subCategory2: selSub2,
+                            );
+                          }
+                          Navigator.of(sheetContext).pop();
+                        },
+                        child: const Text('Valider'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<bool?> _confirmDelete(String title) {
     final cs = Theme.of(context).colorScheme;
     return showDialog<bool>(
@@ -1689,12 +1845,14 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
     final provider = context.watch<PurchaseProvider>();
     final item = provider.itemsBuilder[widget.index];
 
-    final productName = item.subCategory2 != null &&
+    final rawProductName = item.subCategory2 != null &&
             item.subCategory2!.isNotEmpty
         ? item.subCategory2!
         : (item.subCategory1.isNotEmpty
             ? item.subCategory1
             : item.category);
+    final productName =
+        rawProductName.trim().isEmpty ? 'Nouvel article' : rawProductName;
 
     final currencyFormat = NumberFormat('#,##0', 'fr_FR');
 
@@ -1748,26 +1906,55 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
               ),
             ],
           ),
-          if (item.category.isNotEmpty)
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                _categoryChip(context, item.category, icon: Icons.build),
-                if (item.subCategory1.isNotEmpty) ...[
-                  Icon(Icons.chevron_right,
-                      size: 14, color: cs.outlineVariant),
-                  _categoryChip(context, item.subCategory1),
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => _pickCategory(context, provider),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.category_outlined, size: 16, color: cs.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: item.category.isEmpty
+                        ? Text(
+                            'Choisir une catégorie',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: cs.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          )
+                        : Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              _categoryChip(context, item.category,
+                                  icon: Icons.build),
+                              if (item.subCategory1.isNotEmpty) ...[
+                                Icon(Icons.chevron_right,
+                                    size: 14, color: cs.outlineVariant),
+                                _categoryChip(context, item.subCategory1),
+                              ],
+                              if (item.subCategory2 != null &&
+                                  item.subCategory2!.isNotEmpty) ...[
+                                Icon(Icons.chevron_right,
+                                    size: 14, color: cs.outlineVariant),
+                                _categoryChip(context, item.subCategory2!,
+                                    selected: true),
+                              ],
+                            ],
+                          ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.chevron_right, size: 16, color: cs.primary),
                 ],
-                if (item.subCategory2 != null &&
-                    item.subCategory2!.isNotEmpty) ...[
-                  Icon(Icons.chevron_right,
-                      size: 14, color: cs.outlineVariant),
-                  _categoryChip(context, item.subCategory2!, selected: true),
-                ],
-              ],
+              ),
             ),
+          ),
           const SizedBox(height: 10),
           // Supplier row
           InkWell(

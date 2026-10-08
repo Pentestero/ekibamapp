@@ -92,6 +92,24 @@ Suivez ces étapes pour lancer le projet sur votre machine locale.
 
 ## Journal des modifications
 
+### 8 Octobre 2026
+
+Refonte visuelle basée sur le design system (Material 3 « Stitch ») et corrections du formulaire d'achat.
+
+-   **Refonte UI/UX :**
+    *   **Design System Stitch (M3) :** Alignement complet de la palette de couleurs sur le thème Stitch (seed `#0058BD`, surfaces froides gris-bleu) dans `theme.dart`, en modes clair et sombre.
+    *   **Page 1 - Tableau de Bord & Page 2 - Historique :** Intégration du nouveau design (en-têtes, cartes d'achat, filtres, graphiques).
+    *   **Page 3 - « Nouvel Achat » :** Formulaire entièrement repensé : bannière IA (Scan de facture / Aperçu), cartes « Informations Générales » et « Articles Commandés », contrôle segmenté du type de projet (Interne / Client / Mixte), sélecteur de fournisseur en bottom sheet, récapitulatif « Grand Total », CTA en dégradé et modales de confirmation.
+    *   **Écrans d'Authentification :** Harmonisation de Connexion, Inscription et Réinitialisation du mot de passe (cartes `surfaceContainerLowest`, dégradés `primary → secondaryContainer`).
+
+-   **Corrections de Bugs :**
+    *   **Sélecteur de catégories dans « Nouvel Achat » :** Rétablissement du choix de catégorie pour chaque ligne d'article, sous forme d'un sélecteur en cascade (`Catégorie › Sous-catégorie 1 › Sous-catégorie 2 / Article`) ouvert depuis la ligne de catégorie.
+    *   **Couleurs codées en dur :** Remplacement des couleurs fixes (`Colors.red`, vert de succès, etc.) par les tokens du thème pour une cohérence totale.
+    *   **Robustesse mobile :** Gestion du débordement du montant « Grand Total » sur petits écrans et audit « mobile-first » des écrans restants.
+
+-   **Identité visuelle et PWA :**
+    *   **Icônes PWA & Favicon :** Régénération des icônes d'application (`web/icons/*`, y compris *maskable*) et du favicon à partir du logo **EKIBAM**, qui remplace l'icône Flutter par défaut.
+
 ### 3 Février 2026
 
 Cette version introduit de nouvelles fonctionnalités majeures et apporte plusieurs corrections :
