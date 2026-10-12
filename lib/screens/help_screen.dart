@@ -21,7 +21,13 @@ class HelpScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            const Text("Aide et Guide d'utilisation"),
+            const Flexible(
+              child: Text(
+                "Aide et Guide d'utilisation",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
@@ -84,12 +90,16 @@ class HelpScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: cs.primary,
-                  fontWeight: FontWeight.w700,
-                ),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: cs.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
           ),
         ],
       ),

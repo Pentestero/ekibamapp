@@ -507,23 +507,20 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Flexible(
-                          child: Text(
-                            'Analyser un document',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall
-                                ?.copyWith(
-                                  color: cs.onPrimary,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
+                        Text(
+                          'Analyser un document',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: cs.onPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
-                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 2),
@@ -533,6 +530,7 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                           ),
                           child: Text(
                             'SMART OCR ATELIER',
+                            maxLines: 1,
                             style: Theme.of(context)
                                 .textTheme
                                 .labelSmall
@@ -558,20 +556,17 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildBannerButton(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final buttons = [
+                _buildBannerButton(
                   context,
                   icon: Icons.photo_camera,
                   label: 'Scanner Facture',
                   solid: true,
                   onTap: _scanInvoiceWithAI,
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildBannerButton(
+                _buildBannerButton(
                   context,
                   icon: Icons.visibility,
                   label: 'Aperçu (0 reçu)',
@@ -582,8 +577,25 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
                     isWarning: true,
                   ),
                 ),
-              ),
-            ],
+              ];
+              if (constraints.maxWidth < 380) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    buttons[0],
+                    const SizedBox(height: 8),
+                    buttons[1],
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: buttons[0]),
+                  const SizedBox(width: 8),
+                  Expanded(child: buttons[1]),
+                ],
+              );
+            },
           ),
         ],
       ),

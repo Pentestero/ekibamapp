@@ -94,24 +94,37 @@ class PurchaseDetailScreen extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(label,
-                style: TextStyle(
-                    color: cs.onSurface.withAlpha(150), fontSize: 14)),
-          ),
-          Expanded(
-            child: Text(value,
-                style: TextStyle(
-                  color: cs.onSurface,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                )),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final labelStyle = TextStyle(
+            color: cs.onSurface.withAlpha(150),
+            fontSize: 14,
+          );
+          final valueStyle = TextStyle(
+            color: cs.onSurface,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          );
+
+          if (constraints.maxWidth < 380) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: labelStyle),
+                const SizedBox(height: 2),
+                Text(value, style: valueStyle),
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: 140, child: Text(label, style: labelStyle)),
+              Expanded(child: Text(value, style: valueStyle)),
+            ],
+          );
+        },
       ),
     );
   }
@@ -170,17 +183,27 @@ class PurchaseDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Article #${index + 1}',
+                Expanded(
+                  child: Text('Article #${index + 1}',
                     style: Theme.of(context)
                         .textTheme
                         .titleSmall
                         ?.copyWith(fontWeight: FontWeight.w600)),
-                Text('Total: ${currencyFormat.format(item.total)} XAF',
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'Total: ${currencyFormat.format(item.total)} XAF',
+                    maxLines: 2,
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: cs.primary)),
+                      fontWeight: FontWeight.w700,
+                      color: cs.primary,
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -195,13 +218,18 @@ class PurchaseDetailScreen extends StatelessWidget {
                     fontStyle: FontStyle.italic,
                     color: cs.primary.withAlpha(180))),
             const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              spacing: 16,
+              runSpacing: 4,
               children: [
-                Text('Qté: ${item.quantity.toStringAsFixed(1)}',
-                    style: TextStyle(fontSize: 13, color: cs.onSurface.withAlpha(180))),
-                Text('PU: ${currencyFormat.format(item.unitPrice)} XAF',
-                    style: TextStyle(fontSize: 13, color: cs.onSurface.withAlpha(180))),
+                Text(
+                  'Qté: ${item.quantity.toStringAsFixed(1)}',
+                  style: TextStyle(fontSize: 13, color: cs.onSurface.withAlpha(180)),
+                ),
+                Text(
+                  'PU: ${currencyFormat.format(item.unitPrice)} XAF',
+                  style: TextStyle(fontSize: 13, color: cs.onSurface.withAlpha(180)),
+                ),
               ],
             ),
             if (item.comment != null && item.comment!.isNotEmpty)
@@ -226,20 +254,48 @@ class PurchaseDetailScreen extends StatelessWidget {
       color: cs.primaryContainer,
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('MONTANT TOTAL',
-                style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    color: cs.onPrimaryContainer)),
-            Text('${currencyFormat.format(purchase.grandTotal)} XAF',
-                style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 22,
-                    color: cs.onPrimaryContainer)),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final amount = Text(
+              '${currencyFormat.format(purchase.grandTotal)} XAF',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 22,
+                color: cs.onPrimaryContainer,
+              ),
+            );
+            if (constraints.maxWidth < 380) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('MONTANT TOTAL',
+                      style: TextStyle(
+                        color: cs.onPrimaryContainer,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      )),
+                  const SizedBox(height: 4),
+                  SizedBox(width: double.infinity, child: amount),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(
+                  child: Text('MONTANT TOTAL',
+                      style: TextStyle(
+                        color: cs.onPrimaryContainer,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                      )),
+                ),
+                const SizedBox(width: 8),
+                Flexible(child: amount),
+              ],
+            );
+          },
         ),
       ),
     );

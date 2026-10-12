@@ -27,6 +27,8 @@ class PurchaseProvider with ChangeNotifier {
   bool _isLoading = true;
   String _errorMessage = '';
   int? _editingPurchaseId;
+  int _purchasesLoadGeneration = 0;
+  int _allPurchasesLoadGeneration = 0;
 
   Purchase _purchaseBuilder = Purchase(
     date: DateTime.now(),
@@ -96,6 +98,7 @@ class PurchaseProvider with ChangeNotifier {
 
   Future<void> loadPurchases(FilterState? filters, {bool notify = true}) async {
     if (_user == null) return;
+    final generation = ++_purchasesLoadGeneration;
     if (notify) {
       _isLoading = true;
       _errorMessage = '';
@@ -118,14 +121,16 @@ class PurchaseProvider with ChangeNotifier {
 
     try {
       final allPurchases = await _dbService.getAllPurchases(filters ?? FilterState());
-      List<Purchase> result = allPurchases;
-
-      _purchases = result;
-      _errorMessage = '';
+      if (generation == _purchasesLoadGeneration) {
+        _purchases = allPurchases;
+        _errorMessage = '';
+      }
     } catch (e) {
-      _errorMessage = 'Erreur chargement achats: $e';
+      if (generation == _purchasesLoadGeneration) {
+        _errorMessage = 'Erreur chargement achats: $e';
+      }
     } finally {
-      if (notify) {
+      if (notify && generation == _purchasesLoadGeneration) {
         _isLoading = false;
         notifyListeners();
       }
@@ -134,6 +139,7 @@ class PurchaseProvider with ChangeNotifier {
 
   Future<void> loadAllPurchases(FilterState? filters, {bool notify = true}) async {
     if (_user == null) return;
+    final generation = ++_allPurchasesLoadGeneration;
     if (notify) {
       _isLoading = true;
       _errorMessage = '';
@@ -141,12 +147,19 @@ class PurchaseProvider with ChangeNotifier {
     }
 
     try {
-      _allPurchases = await _dbService.getAllPurchasesForAdmin(filters ?? FilterState());
-      _errorMessage = '';
+      final purchases = await _dbService.getAllPurchasesForAdmin(
+        filters ?? FilterState(),
+      );
+      if (generation == _allPurchasesLoadGeneration) {
+        _allPurchases = purchases;
+        _errorMessage = '';
+      }
     } catch (e) {
-      _errorMessage = 'Erreur chargement de tous les achats (admin): $e';
+      if (generation == _allPurchasesLoadGeneration) {
+        _errorMessage = 'Erreur chargement de tous les achats (admin): $e';
+      }
     } finally {
-      if (notify) {
+      if (notify && generation == _allPurchasesLoadGeneration) {
         _isLoading = false;
         notifyListeners();
       }
@@ -387,14 +400,12 @@ class PurchaseProvider with ChangeNotifier {
     // Determine initial category values for new items
     String initialCategory = '';
     String initialSubCategory1 = '';
-    String? initialSubCategory2;
 
     if (_categories.isNotEmpty) {
       initialCategory = _categories.keys.first;
       if (_categories[initialCategory] != null && _categories[initialCategory]!.isNotEmpty) {
         initialSubCategory1 = _categories[initialCategory]!.keys.first;
         if (_categories[initialCategory]![initialSubCategory1] != null && _categories[initialCategory]![initialSubCategory1]!.isNotEmpty) {
-          initialSubCategory2 = _categories[initialCategory]![initialSubCategory1]!.first;
         }
       }
     }

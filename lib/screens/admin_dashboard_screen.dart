@@ -52,30 +52,43 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
   void _showFilterPanel() {
     final provider = context.read<PurchaseProvider>();
-    final availableYears =
-        provider.allPurchases.map((p) => p.date.year).toSet().toList();
+    final availableYears = provider.allPurchases
+        .expand((purchase) => purchase.items)
+        .map((item) => item.createdAt?.year)
+        .whereType<int>()
+        .toSet()
+        .toList();
     availableYears.sort((a, b) => b.compareTo(a));
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) {
-        return FilterPanel(
-          initialFilters: _filterState,
-          availableYears: availableYears,
-          onFilterChanged: (newFilters) {
-            setState(() {
-              _filterState = newFilters;
-            });
-            provider.loadAllPurchases(newFilters);
-          },
+        final maxHeight = MediaQuery.sizeOf(context).height * 0.9;
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxHeight),
+              child: SingleChildScrollView(
+                child: FilterPanel(
+                  initialFilters: _filterState,
+                  availableYears: availableYears,
+                  onFilterChanged: (newFilters) {
+                    setState(() {
+                      _filterState = newFilters;
+                    });
+                    provider.loadAllPurchases(newFilters);
+                  },
+                ),
+              ),
+            ),
+          ),
         );
       },
-    ).then((_) {
-      if (mounted) {
-        provider.loadAllPurchases(_filterState);
-      }
-    });
+    );
   }
 
   void _toggleSelectionMode() {
@@ -120,9 +133,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               ),
             ),
             const SizedBox(width: 12),
-            Text(_isSelectionMode
-                ? '${_selectedPurchaseIds.length} sélectionné(s)'
-                : 'Dashboard Admin'),
+            Flexible(
+              child: Text(
+                _isSelectionMode
+                    ? '${_selectedPurchaseIds.length} sélectionné(s)'
+                    : 'Dashboard Admin',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         actions: _buildAppBarActions(

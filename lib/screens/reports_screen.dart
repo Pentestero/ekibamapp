@@ -78,7 +78,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            const Text('Rapports Avancés'),
+            const Flexible(
+              child: Text(
+                'Rapports Avancés',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
@@ -167,11 +173,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
         ),
         const SizedBox(width: 12),
-        Text(title,
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context)
                 .textTheme
                 .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w700)),
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
       ],
     );
   }
@@ -247,8 +259,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   child: ElevatedButton(
                     onPressed: () =>
                         _selectCustomDateRange(context),
-                    child:
-                        const Text('Sélectionner la plage personnalisée'),
+                    child: const Text(
+                      'Sélectionner la plage personnalisée',
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
               ),

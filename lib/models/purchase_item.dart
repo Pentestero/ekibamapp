@@ -37,8 +37,9 @@ class PurchaseItem {
     required this.expenseDate, // Updated in constructor
     DateTime? createdAt,
     DateTime? modifiedAt,
+    bool preserveNullCreatedAt = false,
   }) : _localId = localId ?? DateTime.now().millisecondsSinceEpoch,
-        createdAt = createdAt ?? DateTime.now(),
+        createdAt = preserveNullCreatedAt ? createdAt : createdAt ?? DateTime.now(),
         modifiedAt = modifiedAt ?? createdAt ?? DateTime.now();
 
   int get total => ((quantity * unitPrice) + paymentFee).round();
@@ -92,6 +93,7 @@ class PurchaseItem {
       modifiedAt: map['modified_at'] == null
           ? null
           : DateTime.parse(map['modified_at'] as String),
+        preserveNullCreatedAt: true,
     );
   }
 
@@ -130,6 +132,7 @@ class PurchaseItem {
       expenseDate: expenseDate ?? this.expenseDate, // Updated in copyWith body
       createdAt: createdAt ?? this.createdAt,
       modifiedAt: modifiedAt ?? this.modifiedAt,
+      preserveNullCreatedAt: true,
     );
   }
 

@@ -82,8 +82,7 @@ class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
     }
   }
 
-  bool get _hasCustomRange =>
-      _customStart != null || _customEnd != null;
+  bool get _hasCustomRange => _customStart != null || _customEnd != null;
 
   bool _matchesPreset(DateTime? start, DateTime? end) {
     if (start == null || end == null) return false;
@@ -135,6 +134,7 @@ class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final compactLayout = MediaQuery.sizeOf(context).width < 380;
     final hasCustomDate = !(_isThisWeekSelected() ||
         _isThisMonthSelected() ||
         _isThisQuarterSelected()) &&
@@ -160,12 +160,17 @@ class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
               children: [
                 Icon(Icons.filter_alt, color: cs.primary, size: 24),
                 const SizedBox(width: 8),
-                Text('Filtres & Tri Avancés',
+                Expanded(
+                  child: Text(
+                    'Filtres & Tri Avancés',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context)
                         .textTheme
                         .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700)),
-                const Spacer(),
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
                 IconButton(
                   icon: Icon(Icons.close, color: cs.onSurfaceVariant),
                   onPressed: () => Navigator.of(context).pop(),
@@ -174,7 +179,7 @@ class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
             ),
           ),
           const SizedBox(height: 4),
-          _buildLabel('Période d\'émission'),
+          _buildLabel('Date de création des articles'),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -259,12 +264,11 @@ class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
                       ),
                     ),
                     onPressed: _resetAll,
-                    child: const Text('Réinitialiser'),
+                    child: Text(compactLayout ? 'Effacer' : 'Réinitialiser'),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  flex: 2,
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(0, 48),
@@ -327,13 +331,18 @@ class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
                     color: selected ? cs.onPrimary : cs.onSurfaceVariant),
                 const SizedBox(width: 6),
               ],
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: selected ? cs.onPrimary : cs.onSurface,
-                    ),
-              ),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: selected ? cs.onPrimary : cs.onSurface,
+                      ),
+                ),
+                ),
             ],
           ),
         ),

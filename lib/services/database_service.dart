@@ -12,50 +12,85 @@ class DatabaseService {
 
   final _supabase = Supabase.instance.client;
 
-  PostgrestTransformBuilder<List<Map<String, dynamic>>> _applyFiltersAndSorting(
-    PostgrestFilterBuilder<List<Map<String, dynamic>>> initialQuery,
-    FilterState filters, {
-    bool includeUserIdFilter = true,
-  }) {
-    // Start with the initial query. This will remain a PostgrestFilterBuilder until .order() is called.
-    PostgrestFilterBuilder<List<Map<String, dynamic>>> filterableQuery = initialQuery;
+  ({DateTime? startDate, DateTime? endDateExclusive}) _effectiveDateRange(
+    FilterState filters,
+  ) {
+    DateTime? startDate;
+    DateTime? endDateExclusive;
 
-    if (includeUserIdFilter) {
-      final userId = _supabase.auth.currentUser?.id;
-      if (userId != null) {
-        filterableQuery = filterableQuery.eq('user_id', userId);
+    if (filters.year != null) {
+      startDate = DateTime(filters.year!, 1, 1);
+      endDateExclusive = DateTime(filters.year! + 1, 1, 1);
+
+      if (filters.month != null) {
+        startDate = DateTime(filters.year!, filters.month!, 1);
+        endDateExclusive = DateTime(filters.year!, filters.month! + 1, 1);
       }
     }
 
-    if (filters.searchQuery.isNotEmpty) {
-      final queryText = filters.searchQuery.toLowerCase();
-      filterableQuery = filterableQuery.or(
-        'ref_da.ilike.*$queryText*,'
-        'demander.ilike.*$queryText*,'
-        'client_name.ilike.*$queryText*',
+    if (filters.startDate != null) {
+      startDate = DateTime(
+        filters.startDate!.year,
+        filters.startDate!.month,
+        filters.startDate!.day,
+      );
+    }
+    if (filters.endDate != null) {
+      endDateExclusive = DateTime(
+        filters.endDate!.year,
+        filters.endDate!.month,
+        filters.endDate!.day + 1,
       );
     }
 
-    // Now, apply ordering. This operation changes the type of the builder
-    // from PostgrestFilterBuilder to PostgrestTransformBuilder.
-    // We return this transformed builder.
-    switch (filters.sortOption) {
-      case SortOption.amountDesc:
-        debugPrint('Warning: Attempting server-side sorting by grand_total (descending).');
-        return filterableQuery.order('grand_total', ascending: false); // Assuming 'grand_total' exists in the database.
-      case SortOption.amountAsc:
-        debugPrint('Warning: Attempting server-side sorting by grand_total (ascending).');
-        return filterableQuery.order('grand_total', ascending: true); // Assuming 'grand_total' exists in the database.
-      case SortOption.dateDesc: // Fallback to id ordering if dateDesc is selected
-      case SortOption.dateAsc: // Fallback to id ordering if dateAsc is selected
-      default:
-        return filterableQuery.order('id', ascending: false); // Default ordering
-    }
+    return (startDate: startDate, endDateExclusive: endDateExclusive);
   }
 
-  String? _formatDateForRpc(DateTime? date) {
-    if (date == null) return null;
-    return date.toIso8601String();
+  List<Purchase> _filterAndSortPurchasesByItemCreatedAt(
+    List<Purchase> purchases, {
+    required DateTime? startDate,
+    required DateTime? endDateExclusive,
+    required SortOption sortOption,
+  }) {
+    final filtered = purchases.where((purchase) {
+      if (startDate == null && endDateExclusive == null) return true;
+      return purchase.items.any((item) {
+        final createdAt = item.createdAt;
+        return createdAt != null &&
+            (startDate == null || !createdAt.isBefore(startDate)) &&
+            (endDateExclusive == null || createdAt.isBefore(endDateExclusive));
+      });
+    }).toList();
+
+    if (sortOption == SortOption.amountAsc ||
+        sortOption == SortOption.amountDesc) {
+      return filtered;
+    }
+
+    DateTime latestItemCreationDate(Purchase purchase) {
+      DateTime? latest;
+      for (final item in purchase.items) {
+        final createdAt = item.createdAt;
+        if (createdAt != null && (latest == null || createdAt.isAfter(latest))) {
+          latest = createdAt;
+        }
+      }
+      return latest ?? purchase.createdAt;
+    }
+
+    final descending = sortOption == SortOption.dateDesc;
+    filtered.sort((a, b) {
+      final dateComparison = latestItemCreationDate(a)
+          .compareTo(latestItemCreationDate(b));
+      if (dateComparison != 0) {
+        return descending ? -dateComparison : dateComparison;
+      }
+      final aId = a.id ?? 0;
+      final bId = b.id ?? 0;
+      return descending ? bId.compareTo(aId) : aId.compareTo(bId);
+    });
+
+    return filtered;
   }
 
   Future<List<Purchase>> getAllPurchases(FilterState filters) async {
@@ -63,34 +98,16 @@ class DatabaseService {
     if (userId == null) return [];
 
     try {
-      // Handle year/month filters or specific start/end dates
-      DateTime? effectiveStartDate;
-      DateTime? effectiveEndDate;
-
-      if (filters.year != null) {
-        effectiveStartDate = DateTime(filters.year!, 1, 1);
-        effectiveEndDate = DateTime(filters.year!, 12, 31, 23, 59, 59);
-
-        if (filters.month != null) {
-          effectiveStartDate = DateTime(filters.year!, filters.month!, 1);
-          effectiveEndDate = DateTime(filters.year!, filters.month! + 1, 0, 23, 59, 59);
-        }
-      }
-      
-      // Override with specific startDate/endDate if provided
-      if (filters.startDate != null) {
-        effectiveStartDate = DateTime(filters.startDate!.year, filters.startDate!.month, filters.startDate!.day, 0, 0, 0);
-      }
-      if (filters.endDate != null) {
-        effectiveEndDate = DateTime(filters.endDate!.year, filters.endDate!.month, filters.endDate!.day, 23, 59, 59);
-      }
+      final dateRange = _effectiveDateRange(filters);
 
       // Ensure all RPC parameters are always present, even if null, for function matching
       final rpcParams = <String, dynamic>{
         'user_id_param': userId,
         'search_query_param': filters.searchQuery.isNotEmpty ? filters.searchQuery : null,
-        'start_date_param': _formatDateForRpc(effectiveStartDate),
-        'end_date_param': _formatDateForRpc(effectiveEndDate),
+        // Date filtering is applied to purchase_items.created_at below, not
+        // to the parent purchase/request creation date in the RPC.
+        'start_date_param': null,
+        'end_date_param': null,
         'sort_option_param': filters.sortOption.toString().split('.').last,
       };
 
@@ -102,7 +119,12 @@ class DatabaseService {
       // rpcResult is a list of dynamic maps (JSON objects) where each map is a Purchase record
       List<Purchase> purchases = rpcResult.map((p) => Purchase.fromMap(p as Map<String, dynamic>)).toList();
       
-      return purchases;
+      return _filterAndSortPurchasesByItemCreatedAt(
+        purchases,
+        startDate: dateRange.startDate,
+        endDateExclusive: dateRange.endDateExclusive,
+        sortOption: filters.sortOption,
+      );
     } catch (e) {
       debugPrint("Erreur lors de la récupération des achats filtrés via RPC: $e");
       rethrow;
@@ -114,34 +136,16 @@ class DatabaseService {
     if (userId == null) return []; // Should not happen for an authenticated admin
 
     try {
-      // Handle year/month filters or specific start/end dates
-      DateTime? effectiveStartDate;
-      DateTime? effectiveEndDate;
-
-      if (filters.year != null) {
-        effectiveStartDate = DateTime(filters.year!, 1, 1);
-        effectiveEndDate = DateTime(filters.year!, 12, 31, 23, 59, 59);
-
-        if (filters.month != null) {
-          effectiveStartDate = DateTime(filters.year!, filters.month!, 1);
-          effectiveEndDate = DateTime(filters.year!, filters.month! + 1, 0, 23, 59, 59);
-        }
-      }
-      
-      // Override with specific startDate/endDate if provided
-      if (filters.startDate != null) {
-        effectiveStartDate = DateTime(filters.startDate!.year, filters.startDate!.month, filters.startDate!.day, 0, 0, 0);
-      }
-      if (filters.endDate != null) {
-        effectiveEndDate = DateTime(filters.endDate!.year, filters.endDate!.month, filters.endDate!.day, 23, 59, 59);
-      }
+      final dateRange = _effectiveDateRange(filters);
 
       // Ensure all RPC parameters are always present, even if null, for function matching
       final rpcParams = <String, dynamic>{
         'user_id_param': null, // Pass null for admin to see all purchases
         'search_query_param': filters.searchQuery.isNotEmpty ? filters.searchQuery : null,
-        'start_date_param': _formatDateForRpc(effectiveStartDate),
-        'end_date_param': _formatDateForRpc(effectiveEndDate),
+        // Date filtering is applied to purchase_items.created_at below, not
+        // to the parent purchase/request creation date in the RPC.
+        'start_date_param': null,
+        'end_date_param': null,
         'sort_option_param': filters.sortOption.toString().split('.').last,
       };
 
@@ -153,7 +157,12 @@ class DatabaseService {
       
       List<Purchase> purchases = rpcResult.map((p) => Purchase.fromMap(p as Map<String, dynamic>)).toList();
       
-      return purchases;
+      return _filterAndSortPurchasesByItemCreatedAt(
+        purchases,
+        startDate: dateRange.startDate,
+        endDateExclusive: dateRange.endDateExclusive,
+        sortOption: filters.sortOption,
+      );
     } catch (e) {
       debugPrint("Erreur lors de la récupération de tous les achats (admin) via RPC: $e");
       rethrow;

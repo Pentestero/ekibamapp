@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -64,6 +66,7 @@ class _FilterPanelState extends State<FilterPanel> {
   late final TextEditingController _searchController;
   late final TextEditingController _startDateController;
   late final TextEditingController _endDateController;
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -83,14 +86,20 @@ class _FilterPanelState extends State<FilterPanel> {
     );
 
     _searchController.addListener(() {
-      if (_searchController.text != _currentFilters.searchQuery) {
-        _updateFilters(searchQuery: _searchController.text);
-      }
+      _searchDebounce?.cancel();
+      final query = _searchController.text.trim();
+      if (query == _currentFilters.searchQuery) return;
+      _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+        if (mounted && query != _currentFilters.searchQuery) {
+          _updateFilters(searchQuery: query);
+        }
+      });
     });
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     _startDateController.dispose();
     _endDateController.dispose();
@@ -130,10 +139,9 @@ class _FilterPanelState extends State<FilterPanel> {
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: (isStartDate
-              ? _currentFilters.startDate
-              : _currentFilters.endDate) ??
-          DateTime.now(),
+        initialDate:
+          (isStartDate ? _currentFilters.startDate : _currentFilters.endDate) ??
+            DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
     );
@@ -150,9 +158,21 @@ class _FilterPanelState extends State<FilterPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final compactLayout = screenWidth < 420;
     final monthNames = [
-      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+      'Janvier',
+      'Février',
+      'Mars',
+      'Avril',
+      'Mai',
+      'Juin',
+      'Juillet',
+      'Août',
+      'Septembre',
+      'Octobre',
+      'Novembre',
+      'Décembre'
     ];
 
     return Padding(
@@ -162,16 +182,22 @@ class _FilterPanelState extends State<FilterPanel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Filtres & Tri',
+              Expanded(
+                child: Text(
+                  'Filtres & Tri',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context)
                       .textTheme
                       .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w700)),
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
               TextButton(
                 onPressed: () {
                   _searchController.clear();
+                  _searchDebounce?.cancel();
                   _startDateController.clear();
                   _endDateController.clear();
                   _updateFilters(
@@ -183,7 +209,7 @@ class _FilterPanelState extends State<FilterPanel> {
                     sortOption: SortOption.dateDesc,
                   );
                 },
-                child: const Text('Réinitialiser'),
+                child: Text(compactLayout ? 'Effacer' : 'Réinitialiser'),
               ),
             ],
           ),
@@ -191,7 +217,8 @@ class _FilterPanelState extends State<FilterPanel> {
           TextFormField(
             controller: _searchController,
             decoration: InputDecoration(
-              labelText: 'Rechercher (Réf, Demandeur, etc.)',
+              labelText: 'Recherche',
+              helperText: 'Réf. DA, demandeur ou client',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
@@ -204,92 +231,7 @@ class _FilterPanelState extends State<FilterPanel> {
             ),
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<int?>(
-                  initialValue: _currentFilters.year,
-                  decoration:
-                      const InputDecoration(labelText: 'Année'),
-                  items: [
-                    const DropdownMenuItem<int?>(
-                        value: null, child: Text('Toutes')),
-                    ...widget.availableYears.map((y) =>
-                        DropdownMenuItem(
-                            value: y, child: Text(y.toString()))),
-                  ],
-                  onChanged: (value) =>
-                      _updateFilters(year: value, resetYear: value == null),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: DropdownButtonFormField<int?>(
-                  initialValue: _currentFilters.month,
-                  decoration:
-                      const InputDecoration(labelText: 'Mois'),
-                  items: [
-                    const DropdownMenuItem<int?>(
-                        value: null, child: Text('Tous')),
-                    ...List.generate(12,
-                        (index) => DropdownMenuItem(
-                            value: index + 1,
-                            child: Text(monthNames[index]))),
-                  ],
-                  onChanged: (value) =>
-                      _updateFilters(month: value, resetMonth: value == null),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _startDateController,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: 'Date de début',
-                    prefixIcon: const Icon(Icons.calendar_today),
-                    suffixIcon: _startDateController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _startDateController.clear();
-                              _updateFilters(
-                                  startDate: null, resetStartDate: true);
-                            },
-                          )
-                        : null,
-                  ),
-                  onTap: () => _selectDate(context, true),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: TextFormField(
-                  controller: _endDateController,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: 'Date de fin',
-                    prefixIcon: const Icon(Icons.calendar_today),
-                    suffixIcon: _endDateController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _endDateController.clear();
-                              _updateFilters(
-                                  endDate: null, resetEndDate: true);
-                            },
-                          )
-                        : null,
-                  ),
-                  onTap: () => _selectDate(context, false),
-                ),
-              ),
-            ],
-          ),
+          _buildDateFilters(monthNames, context),
           const SizedBox(height: 24),
           Text('Trier par',
               style: Theme.of(context)
@@ -297,33 +239,139 @@ class _FilterPanelState extends State<FilterPanel> {
                   .titleMedium
                   ?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
-          SegmentedButton<SortOption>(
-            segments: const [
-              ButtonSegment(
-                  value: SortOption.dateDesc,
-                  label: Text('Date'),
-                  icon: Icon(Icons.arrow_downward)),
-              ButtonSegment(
-                  value: SortOption.dateAsc,
-                  label: Text('Date'),
-                  icon: Icon(Icons.arrow_upward)),
-              ButtonSegment(
-                  value: SortOption.amountDesc,
-                  label: Text('Montant'),
-                  icon: Icon(Icons.arrow_downward)),
-              ButtonSegment(
-                  value: SortOption.amountAsc,
-                  label: Text('Montant'),
-                  icon: Icon(Icons.arrow_upward)),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildSortChip(
+                label: compactLayout ? 'Date' : 'Date récente',
+                option: SortOption.dateDesc,
+                icon: Icons.arrow_downward,
+              ),
+              _buildSortChip(
+                label: compactLayout ? 'Date' : 'Date ancienne',
+                option: SortOption.dateAsc,
+                icon: Icons.arrow_upward,
+              ),
+              _buildSortChip(
+                label: compactLayout ? 'Montant' : 'Montant élevé',
+                option: SortOption.amountDesc,
+                icon: Icons.arrow_downward,
+              ),
+              _buildSortChip(
+                label: compactLayout ? 'Montant' : 'Montant faible',
+                option: SortOption.amountAsc,
+                icon: Icons.arrow_upward,
+              ),
             ],
-            selected: {_currentFilters.sortOption},
-            onSelectionChanged: (newSelection) {
-              _updateFilters(sortOption: newSelection.first);
-            },
           ),
           const SizedBox(height: 24),
         ],
       ),
+    );
+  }
+
+  Widget _buildDateFilters(List<String> monthNames, BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<int?>(
+                initialValue: _currentFilters.year,
+                decoration: const InputDecoration(labelText: 'Année'),
+                items: [
+                  const DropdownMenuItem<int?>(
+                      value: null, child: Text('Toutes')),
+                  ...widget.availableYears.map((y) =>
+                      DropdownMenuItem(value: y, child: Text(y.toString()))),
+                ],
+                onChanged: (value) =>
+                    _updateFilters(year: value, resetYear: value == null),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: DropdownButtonFormField<int?>(
+                initialValue: _currentFilters.month,
+                decoration: const InputDecoration(labelText: 'Mois'),
+                items: [
+                  const DropdownMenuItem<int?>(
+                      value: null, child: Text('Tous')),
+                  ...List.generate(
+                      12,
+                      (index) => DropdownMenuItem(
+                          value: index + 1, child: Text(monthNames[index]))),
+                ],
+                onChanged: (value) =>
+                    _updateFilters(month: value, resetMonth: value == null),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < 400) {
+              return Column(
+                children: [
+                  _buildDateInput(context, isStartDate: true),
+                  const SizedBox(height: 12),
+                  _buildDateInput(context, isStartDate: false),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: _buildDateInput(context, isStartDate: true)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildDateInput(context, isStartDate: false)),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateInput(BuildContext context, {required bool isStartDate}) {
+    final controller = isStartDate ? _startDateController : _endDateController;
+    final label = isStartDate ? 'Date de début' : 'Date de fin';
+    return TextFormField(
+      controller: controller,
+      readOnly: true,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: const Icon(Icons.calendar_today),
+        suffixIcon: controller.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  controller.clear();
+                  _updateFilters(
+                    startDate: isStartDate ? null : _currentFilters.startDate,
+                    endDate: isStartDate ? _currentFilters.endDate : null,
+                    resetStartDate: isStartDate,
+                    resetEndDate: !isStartDate,
+                  );
+                },
+              )
+            : null,
+      ),
+      onTap: () => _selectDate(context, isStartDate),
+    );
+  }
+
+  Widget _buildSortChip({
+    required String label,
+    required SortOption option,
+    required IconData icon,
+  }) {
+    return ChoiceChip(
+      avatar: Icon(icon, size: 16),
+      label: Text(label),
+      selected: _currentFilters.sortOption == option,
+      onSelected: (_) => _updateFilters(sortOption: option),
     );
   }
 }

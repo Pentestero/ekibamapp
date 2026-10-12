@@ -26,7 +26,13 @@ class LibraryManagementScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            const Text("Ma Bibliothèque d'Articles"),
+            const Flexible(
+              child: Text(
+                "Ma Bibliothèque d'Articles",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
@@ -93,7 +99,9 @@ class LibraryManagementScreen extends StatelessWidget {
                         child: Icon(Icons.inventory_2_outlined,
                             color: cs.primary, size: 22),
                       ),
-                      title: Text(item.templateName,
+                        title: Text(item.templateName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: Theme.of(context)
                               .textTheme
                               .titleSmall
@@ -104,6 +112,8 @@ class LibraryManagementScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             '${item.category} > ${item.subCategory1}${item.subCategory2 != null ? ' > ${item.subCategory2}' : ''}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 fontSize: 13,
                                 color: cs.onSurface.withAlpha(150)),
@@ -111,6 +121,8 @@ class LibraryManagementScreen extends StatelessWidget {
                           if (item.unitPrice != null)
                             Text(
                               '${NumberFormat('#,##0', 'fr_FR').format(item.unitPrice)} XAF${item.unit != null ? ' / ${item.unit}' : ''}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
