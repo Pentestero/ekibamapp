@@ -12,11 +12,11 @@ class DatabaseService {
 
   final _supabase = Supabase.instance.client;
 
-  ({DateTime? startDate, DateTime? endDateExclusive}) _effectiveDateRange(
-    FilterState filters,
-  ) {
+  ({DateTime? startDate, DateTime? endDateExclusive, int? monthOnly})
+      _effectiveDateRange(FilterState filters) {
     DateTime? startDate;
     DateTime? endDateExclusive;
+    int? monthOnly;
 
     if (filters.year != null) {
       startDate = DateTime(filters.year!, 1, 1);
@@ -26,6 +26,8 @@ class DatabaseService {
         startDate = DateTime(filters.year!, filters.month!, 1);
         endDateExclusive = DateTime(filters.year!, filters.month! + 1, 1);
       }
+    } else if (filters.month != null) {
+      monthOnly = filters.month;
     }
 
     if (filters.startDate != null) {
@@ -42,23 +44,33 @@ class DatabaseService {
         filters.endDate!.day + 1,
       );
     }
+    if (filters.startDate != null || filters.endDate != null) {
+      monthOnly = null;
+    }
 
-    return (startDate: startDate, endDateExclusive: endDateExclusive);
+    return (
+      startDate: startDate,
+      endDateExclusive: endDateExclusive,
+      monthOnly: monthOnly,
+    );
   }
 
-  List<Purchase> _filterAndSortPurchasesByItemCreatedAt(
+  List<Purchase> _filterAndSortPurchasesByItemDate(
     List<Purchase> purchases, {
     required DateTime? startDate,
     required DateTime? endDateExclusive,
+    required int? monthOnly,
     required SortOption sortOption,
   }) {
     final filtered = purchases.where((purchase) {
-      if (startDate == null && endDateExclusive == null) return true;
+      if (startDate == null && endDateExclusive == null && monthOnly == null) {
+        return true;
+      }
       return purchase.items.any((item) {
-        final createdAt = item.createdAt;
-        return createdAt != null &&
-            (startDate == null || !createdAt.isBefore(startDate)) &&
-            (endDateExclusive == null || createdAt.isBefore(endDateExclusive));
+        final itemDate = item.expenseDate;
+        return (monthOnly == null || itemDate.month == monthOnly) &&
+            (startDate == null || !itemDate.isBefore(startDate)) &&
+            (endDateExclusive == null || itemDate.isBefore(endDateExclusive));
       });
     }).toList();
 
@@ -67,12 +79,11 @@ class DatabaseService {
       return filtered;
     }
 
-    DateTime latestItemCreationDate(Purchase purchase) {
+    DateTime latestItemDate(Purchase purchase) {
       DateTime? latest;
       for (final item in purchase.items) {
-        final createdAt = item.createdAt;
-        if (createdAt != null && (latest == null || createdAt.isAfter(latest))) {
-          latest = createdAt;
+        if (latest == null || item.expenseDate.isAfter(latest)) {
+          latest = item.expenseDate;
         }
       }
       return latest ?? purchase.createdAt;
@@ -80,8 +91,7 @@ class DatabaseService {
 
     final descending = sortOption == SortOption.dateDesc;
     filtered.sort((a, b) {
-      final dateComparison = latestItemCreationDate(a)
-          .compareTo(latestItemCreationDate(b));
+        final dateComparison = latestItemDate(a).compareTo(latestItemDate(b));
       if (dateComparison != 0) {
         return descending ? -dateComparison : dateComparison;
       }
@@ -104,8 +114,8 @@ class DatabaseService {
       final rpcParams = <String, dynamic>{
         'user_id_param': userId,
         'search_query_param': filters.searchQuery.isNotEmpty ? filters.searchQuery : null,
-        // Date filtering is applied to purchase_items.created_at below, not
-        // to the parent purchase/request creation date in the RPC.
+        // Date filtering is applied to purchase_items.expense_date below, not
+        // to the parent purchase/request date or the technical created_at.
         'start_date_param': null,
         'end_date_param': null,
         'sort_option_param': filters.sortOption.toString().split('.').last,
@@ -119,10 +129,11 @@ class DatabaseService {
       // rpcResult is a list of dynamic maps (JSON objects) where each map is a Purchase record
       List<Purchase> purchases = rpcResult.map((p) => Purchase.fromMap(p as Map<String, dynamic>)).toList();
       
-      return _filterAndSortPurchasesByItemCreatedAt(
+      return _filterAndSortPurchasesByItemDate(
         purchases,
         startDate: dateRange.startDate,
         endDateExclusive: dateRange.endDateExclusive,
+        monthOnly: dateRange.monthOnly,
         sortOption: filters.sortOption,
       );
     } catch (e) {
@@ -142,8 +153,8 @@ class DatabaseService {
       final rpcParams = <String, dynamic>{
         'user_id_param': null, // Pass null for admin to see all purchases
         'search_query_param': filters.searchQuery.isNotEmpty ? filters.searchQuery : null,
-        // Date filtering is applied to purchase_items.created_at below, not
-        // to the parent purchase/request creation date in the RPC.
+        // Date filtering is applied to purchase_items.expense_date below, not
+        // to the parent purchase/request date or the technical created_at.
         'start_date_param': null,
         'end_date_param': null,
         'sort_option_param': filters.sortOption.toString().split('.').last,
@@ -157,10 +168,11 @@ class DatabaseService {
       
       List<Purchase> purchases = rpcResult.map((p) => Purchase.fromMap(p as Map<String, dynamic>)).toList();
       
-      return _filterAndSortPurchasesByItemCreatedAt(
+      return _filterAndSortPurchasesByItemDate(
         purchases,
         startDate: dateRange.startDate,
         endDateExclusive: dateRange.endDateExclusive,
+        monthOnly: dateRange.monthOnly,
         sortOption: filters.sortOption,
       );
     } catch (e) {

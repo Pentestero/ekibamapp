@@ -54,8 +54,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     final provider = context.read<PurchaseProvider>();
     final availableYears = provider.allPurchases
         .expand((purchase) => purchase.items)
-        .map((item) => item.createdAt?.year)
-        .whereType<int>()
+        .map((item) => item.expenseDate.year)
         .toSet()
         .toList();
     availableYears.sort((a, b) => b.compareTo(a));

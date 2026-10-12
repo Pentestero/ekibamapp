@@ -1816,32 +1816,43 @@ class _PurchaseItemCardState extends State<_PurchaseItemCard> {
                       ?.copyWith(color: cs.tertiary),
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(false),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(46),
-                        ),
-                        child: const Text('Annuler'),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final cancelButton = OutlinedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(46),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () =>
-                            Navigator.of(dialogContext).pop(true),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(46),
-                          backgroundColor: cs.error,
-                          foregroundColor: cs.onError,
-                        ),
-                        child: const Text('Supprimer'),
+                      child: const Text('Annuler', textAlign: TextAlign.center),
+                    );
+                    final deleteButton = ElevatedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(46),
+                        backgroundColor: cs.error,
+                        foregroundColor: cs.onError,
                       ),
-                    ),
-                  ],
+                      child: const Text('Supprimer', textAlign: TextAlign.center),
+                    );
+
+                    if (constraints.maxWidth < 320) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          cancelButton,
+                          const SizedBox(height: 8),
+                          deleteButton,
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        Expanded(child: cancelButton),
+                        const SizedBox(width: 10),
+                        Expanded(child: deleteButton),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),

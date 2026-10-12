@@ -179,7 +179,7 @@ class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
             ),
           ),
           const SizedBox(height: 4),
-          _buildLabel('Date de création des articles'),
+          _buildLabel('Date des articles'),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,

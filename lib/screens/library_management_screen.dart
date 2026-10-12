@@ -183,6 +183,8 @@ class LibraryManagementScreen extends StatelessWidget {
         title: const Text("Supprimer l'article"),
         content: Text(
             'Êtes-vous sûr de vouloir supprimer "${item.templateName}" de votre bibliothèque ?'),
+        actionsOverflowDirection: VerticalDirection.down,
+        actionsOverflowAlignment: OverflowBarAlignment.end,
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),

@@ -1308,50 +1308,55 @@ letterSpacing: 0.8,
   Widget _buildEmptyState(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return ScaleIn(
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(40),
-          child: Column(
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: cs.primary.withAlpha(15),
-                  borderRadius: BorderRadius.circular(24),
+      child: SizedBox(
+        width: double.infinity,
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: cs.primary.withAlpha(15),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Icon(
+                    Icons.shopping_cart_outlined,
+                    size: 40,
+                    color: cs.primary.withAlpha(120),
+                  ),
                 ),
-                child: Icon(
-                  Icons.shopping_cart_outlined,
-                  size: 40,
-                  color: cs.primary.withAlpha(120),
+                const SizedBox(height: 20),
+                Text(
+                  'Aucun achat enregistré',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Aucun achat enregistré',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Commencez par ajouter votre premier achat',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: cs.onSurface.withAlpha(150),
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              ScaleTap(
-                onTap: widget.navigateToNewPurchase ??
-                    widget.navigateToHistory,
-                child: FilledButton.tonal(
-                  onPressed: widget.navigateToNewPurchase ??
+                const SizedBox(height: 8),
+                Text(
+                  'Commencez par ajouter votre premier achat',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: cs.onSurface.withAlpha(150),
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ScaleTap(
+                  onTap: widget.navigateToNewPurchase ??
                       widget.navigateToHistory,
-                  child: const Text('Nouvel Achat'),
+                  child: FilledButton.tonal(
+                    onPressed: widget.navigateToNewPurchase ??
+                        widget.navigateToHistory,
+                    child: const Text('Nouvel Achat'),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
