@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 
 @immutable
 class PurchaseItem {
+  static int _localIdSequence = 0;
+
   final int? id;
   final int _localId; // For stable hashcode on new items
   final int purchaseId;
@@ -38,7 +40,7 @@ class PurchaseItem {
     DateTime? createdAt,
     DateTime? modifiedAt,
     bool preserveNullCreatedAt = false,
-  }) : _localId = localId ?? DateTime.now().millisecondsSinceEpoch,
+  }) : _localId = localId ?? ++_localIdSequence,
         createdAt = preserveNullCreatedAt ? createdAt : createdAt ?? DateTime.now(),
         modifiedAt = modifiedAt ?? createdAt ?? DateTime.now();
 

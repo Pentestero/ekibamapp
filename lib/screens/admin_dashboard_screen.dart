@@ -13,7 +13,9 @@ import 'package:provisions/widgets/filter_panel.dart';
 import 'package:provisions/widgets/animations.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
-  const AdminDashboardScreen({super.key});
+  final Function(Purchase purchase)? onEditPurchase;
+
+  const AdminDashboardScreen({super.key, this.onEditPurchase});
 
   @override
   State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
@@ -371,6 +373,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             isSelected: _selectedPurchaseIds.contains(purchase.id),
             onToggleSelection: () =>
                 _togglePurchaseSelection(purchase.id!),
+            onEditPurchase: widget.onEditPurchase,
           ),
         );
       }).toList(),

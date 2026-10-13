@@ -55,7 +55,7 @@ class DatabaseService {
     );
   }
 
-  List<Purchase> _filterAndSortPurchasesByItemDate(
+  List<Purchase> _filterByItemDateAndSortPurchases(
     List<Purchase> purchases, {
     required DateTime? startDate,
     required DateTime? endDateExclusive,
@@ -79,21 +79,17 @@ class DatabaseService {
       return filtered;
     }
 
-    DateTime latestItemDate(Purchase purchase) {
-      DateTime? latest;
-      for (final item in purchase.items) {
-        if (latest == null || item.expenseDate.isAfter(latest)) {
-          latest = item.expenseDate;
-        }
-      }
-      return latest ?? purchase.createdAt;
-    }
-
+    // Tri par date de la demande (date de création de la DA), et non par la
+    // date des articles, afin que la dernière DA créée apparaisse en premier.
     final descending = sortOption == SortOption.dateDesc;
     filtered.sort((a, b) {
-        final dateComparison = latestItemDate(a).compareTo(latestItemDate(b));
+      final dateComparison = a.date.compareTo(b.date);
       if (dateComparison != 0) {
         return descending ? -dateComparison : dateComparison;
+      }
+      final createdComparison = a.createdAt.compareTo(b.createdAt);
+      if (createdComparison != 0) {
+        return descending ? -createdComparison : createdComparison;
       }
       final aId = a.id ?? 0;
       final bId = b.id ?? 0;
@@ -129,7 +125,7 @@ class DatabaseService {
       // rpcResult is a list of dynamic maps (JSON objects) where each map is a Purchase record
       List<Purchase> purchases = rpcResult.map((p) => Purchase.fromMap(p as Map<String, dynamic>)).toList();
       
-      return _filterAndSortPurchasesByItemDate(
+      return _filterByItemDateAndSortPurchases(
         purchases,
         startDate: dateRange.startDate,
         endDateExclusive: dateRange.endDateExclusive,
@@ -168,7 +164,7 @@ class DatabaseService {
       
       List<Purchase> purchases = rpcResult.map((p) => Purchase.fromMap(p as Map<String, dynamic>)).toList();
       
-      return _filterAndSortPurchasesByItemDate(
+      return _filterByItemDateAndSortPurchases(
         purchases,
         startDate: dateRange.startDate,
         endDateExclusive: dateRange.endDateExclusive,

@@ -281,7 +281,7 @@ class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
                       Navigator.of(context).pop();
                     },
                     icon: const Icon(Icons.check),
-                    label: const Text('Appliquer'),
+                    label: const Text('OK'),
                   ),
                 ),
               ],

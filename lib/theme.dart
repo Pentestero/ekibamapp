@@ -2,170 +2,134 @@ import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-enum AppPalette { blueAmber, purplePink, greenTeal, redOrange }
-
-const ColorScheme _blueAmberStitchLight = ColorScheme(
+const ColorScheme _monoLight = ColorScheme(
   brightness: Brightness.light,
-  primary: Color(0xFF0058BD),
+  primary: Color(0xFF000000),
   onPrimary: Color(0xFFFFFFFF),
-  primaryContainer: Color(0xFF1470E8),
-  onPrimaryContainer: Color(0xFFFEFCFF),
-  secondary: Color(0xFF7D5800),
+  primaryContainer: Color(0xFF1A1A1A),
+  onPrimaryContainer: Color(0xFFFFFFFF),
+  secondary: Color(0xFF555555),
   onSecondary: Color(0xFFFFFFFF),
-  secondaryContainer: Color(0xFFFFB702),
-  onSecondaryContainer: Color(0xFF6B4B00),
-  tertiary: Color(0xFF4D5D73),
+  secondaryContainer: Color(0xFFE0E0E0),
+  onSecondaryContainer: Color(0xFF1A1A1A),
+  tertiary: Color(0xFF888888),
   onTertiary: Color(0xFFFFFFFF),
-  tertiaryContainer: Color(0xFF66768D),
-  onTertiaryContainer: Color(0xFFFDFCFF),
+  tertiaryContainer: Color(0xFFEDEDED),
+  onTertiaryContainer: Color(0xFF1A1A1A),
   error: Color(0xFFBA1A1A),
   onError: Color(0xFFFFFFFF),
   errorContainer: Color(0xFFFFDAD6),
   onErrorContainer: Color(0xFF93000A),
-  background: Color(0xFFF9F9FF),
-  onBackground: Color(0xFF141B2B),
-  surface: Color(0xFFF9F9FF),
-  onSurface: Color(0xFF141B2B),
-  surfaceVariant: Color(0xFFDCE2F7),
-  onSurfaceVariant: Color(0xFF414754),
-  outline: Color(0xFF727785),
-  outlineVariant: Color(0xFFC2C6D6),
+  background: Color(0xFFFFFFFF),
+  onBackground: Color(0xFF000000),
+  surface: Color(0xFFFFFFFF),
+  onSurface: Color(0xFF000000),
+  surfaceVariant: Color(0xFFE0E0E0),
+  onSurfaceVariant: Color(0xFF444444),
+  outline: Color(0xFF888888),
+  outlineVariant: Color(0xFFCCCCCC),
   shadow: Color(0xFF000000),
   scrim: Color(0xFF000000),
-  inverseSurface: Color(0xFF293040),
-  onInverseSurface: Color(0xFFEDF0FF),
-  inversePrimary: Color(0xFFADC6FF),
-  surfaceTint: Color(0xFF005AC2),
+  inverseSurface: Color(0xFF1A1A1A),
+  onInverseSurface: Color(0xFFF5F5F5),
+  inversePrimary: Color(0xFFCCCCCC),
+  surfaceTint: Color(0xFF000000),
   surfaceContainerLowest: Color(0xFFFFFFFF),
-  surfaceContainerLow: Color(0xFFF1F3FF),
-  surfaceContainer: Color(0xFFE9EDFF),
-  surfaceContainerHigh: Color(0xFFE1E8FD),
-  surfaceContainerHighest: Color(0xFFDCE2F7),
-  surfaceDim: Color(0xFFD3DAEF),
-  surfaceBright: Color(0xFFF9F9FF),
-  primaryFixed: Color(0xFFD8E2FF),
-  onPrimaryFixed: Color(0xFF001A41),
-  primaryFixedDim: Color(0xFFADC6FF),
-  onPrimaryFixedVariant: Color(0xFF004494),
-  secondaryFixed: Color(0xFFFFDEA9),
-  onSecondaryFixed: Color(0xFF271900),
-  secondaryFixedDim: Color(0xFFFFBA27),
-  onSecondaryFixedVariant: Color(0xFF5E4100),
-  tertiaryFixed: Color(0xFFD3E4FE),
-  onTertiaryFixed: Color(0xFF0B1C30),
-  tertiaryFixedDim: Color(0xFFB7C8E1),
-  onTertiaryFixedVariant: Color(0xFF38485D),
+  surfaceContainerLow: Color(0xFFF7F7F7),
+  surfaceContainer: Color(0xFFF0F0F0),
+  surfaceContainerHigh: Color(0xFFE8E8E8),
+  surfaceContainerHighest: Color(0xFFE0E0E0),
+  surfaceDim: Color(0xFFD6D6D6),
+  surfaceBright: Color(0xFFFFFFFF),
+  primaryFixed: Color(0xFFE0E0E0),
+  onPrimaryFixed: Color(0xFF000000),
+  primaryFixedDim: Color(0xFFBDBDBD),
+  onPrimaryFixedVariant: Color(0xFF1A1A1A),
+  secondaryFixed: Color(0xFFE0E0E0),
+  onSecondaryFixed: Color(0xFF1A1A1A),
+  secondaryFixedDim: Color(0xFFBDBDBD),
+  onSecondaryFixedVariant: Color(0xFF333333),
+  tertiaryFixed: Color(0xFFEDEDED),
+  onTertiaryFixed: Color(0xFF1A1A1A),
+  tertiaryFixedDim: Color(0xFFCCCCCC),
+  onTertiaryFixedVariant: Color(0xFF333333),
 );
 
-const ColorScheme _blueAmberStitchDark = ColorScheme(
+const ColorScheme _monoDark = ColorScheme(
   brightness: Brightness.dark,
-  primary: Color(0xFFADC6FF),
-  onPrimary: Color(0xFF002E66),
-  primaryContainer: Color(0xFF004494),
-  onPrimaryContainer: Color(0xFFD8E2FF),
-  secondary: Color(0xFFFFBA27),
-  onSecondary: Color(0xFF3F2D00),
-  secondaryContainer: Color(0xFF5E4100),
-  onSecondaryContainer: Color(0xFFFFDEA9),
-  tertiary: Color(0xFFB7C8E1),
-  onTertiary: Color(0xFF21314A),
-  tertiaryContainer: Color(0xFF36485E),
-  onTertiaryContainer: Color(0xFFD3E4FE),
+  primary: Color(0xFFFFFFFF),
+  onPrimary: Color(0xFF000000),
+  primaryContainer: Color(0xFFE0E0E0),
+  onPrimaryContainer: Color(0xFF000000),
+  secondary: Color(0xFFCCCCCC),
+  onSecondary: Color(0xFF000000),
+  secondaryContainer: Color(0xFF333333),
+  onSecondaryContainer: Color(0xFFF0F0F0),
+  tertiary: Color(0xFF999999),
+  onTertiary: Color(0xFF000000),
+  tertiaryContainer: Color(0xFF2A2A2A),
+  onTertiaryContainer: Color(0xFFE0E0E0),
   error: Color(0xFFFFB4AB),
   onError: Color(0xFF690005),
   errorContainer: Color(0xFF93000A),
   onErrorContainer: Color(0xFFFFDAD6),
-  background: Color(0xFF11141B),
-  onBackground: Color(0xFFE1E2E9),
-  surface: Color(0xFF11141B),
-  onSurface: Color(0xFFE1E2E9),
-  surfaceVariant: Color(0xFF414754),
-  onSurfaceVariant: Color(0xFFC2C6D6),
-  outline: Color(0xFF8C93A0),
-  outlineVariant: Color(0xFF414754),
+  background: Color(0xFF0A0A0A),
+  onBackground: Color(0xFFF5F5F5),
+  surface: Color(0xFF0A0A0A),
+  onSurface: Color(0xFFF5F5F5),
+  surfaceVariant: Color(0xFF333333),
+  onSurfaceVariant: Color(0xFFC0C0C0),
+  outline: Color(0xFF8A8A8A),
+  outlineVariant: Color(0xFF3A3A3A),
   shadow: Color(0xFF000000),
   scrim: Color(0xFF000000),
-  inverseSurface: Color(0xFFE1E2E9),
-  onInverseSurface: Color(0xFF293040),
-  inversePrimary: Color(0xFF005AC2),
-  surfaceTint: Color(0xFFADC6FF),
-  surfaceContainerLowest: Color(0xFF0C0F15),
-  surfaceContainerLow: Color(0xFF191C24),
-  surfaceContainer: Color(0xFF1D2028),
-  surfaceContainerHigh: Color(0xFF282B33),
-  surfaceContainerHighest: Color(0xFF33363F),
-  surfaceDim: Color(0xFF11141B),
-  surfaceBright: Color(0xFF373A42),
-  primaryFixed: Color(0xFFD8E2FF),
-  onPrimaryFixed: Color(0xFF001A41),
-  primaryFixedDim: Color(0xFFADC6FF),
-  onPrimaryFixedVariant: Color(0xFF004494),
-  secondaryFixed: Color(0xFFFFDEA9),
-  onSecondaryFixed: Color(0xFF271900),
-  secondaryFixedDim: Color(0xFFFFBA27),
-  onSecondaryFixedVariant: Color(0xFF5E4100),
-  tertiaryFixed: Color(0xFFD3E4FE),
-  onTertiaryFixed: Color(0xFF0B1C30),
-  tertiaryFixedDim: Color(0xFFB7C8E1),
-  onTertiaryFixedVariant: Color(0xFF38485D),
+  inverseSurface: Color(0xFFF0F0F0),
+  onInverseSurface: Color(0xFF1A1A1A),
+  inversePrimary: Color(0xFF000000),
+  surfaceTint: Color(0xFFFFFFFF),
+  surfaceContainerLowest: Color(0xFF050505),
+  surfaceContainerLow: Color(0xFF141414),
+  surfaceContainer: Color(0xFF1A1A1A),
+  surfaceContainerHigh: Color(0xFF242424),
+  surfaceContainerHighest: Color(0xFF303030),
+  surfaceDim: Color(0xFF0A0A0A),
+  surfaceBright: Color(0xFF3A3A3A),
+  primaryFixed: Color(0xFFE0E0E0),
+  onPrimaryFixed: Color(0xFF000000),
+  primaryFixedDim: Color(0xFFBDBDBD),
+  onPrimaryFixedVariant: Color(0xFF1A1A1A),
+  secondaryFixed: Color(0xFFE0E0E0),
+  onSecondaryFixed: Color(0xFF1A1A1A),
+  secondaryFixedDim: Color(0xFFBDBDBD),
+  onSecondaryFixedVariant: Color(0xFF333333),
+  tertiaryFixed: Color(0xFFEDEDED),
+  onTertiaryFixed: Color(0xFF1A1A1A),
+  tertiaryFixedDim: Color(0xFFCCCCCC),
+  onTertiaryFixedVariant: Color(0xFF333333),
 );
 
 class ThemeController extends ChangeNotifier {
-  AppPalette _palette = AppPalette.blueAmber;
   ThemeMode _mode = ThemeMode.light;
 
-  AppPalette get palette => _palette;
   ThemeMode get mode => _mode;
-
-  void setPalette(AppPalette palette) {
-    _palette = palette;
-    notifyListeners();
-  }
 
   void setMode(ThemeMode mode) {
     _mode = mode;
     notifyListeners();
   }
 
-  ThemeData get lightTheme => _buildTheme(_palette, Brightness.light);
-  ThemeData get darkTheme => _buildTheme(_palette, Brightness.dark);
+  ThemeData get lightTheme => _buildTheme(Brightness.light);
+  ThemeData get darkTheme => _buildTheme(Brightness.dark);
 }
 
-ThemeData _buildTheme(AppPalette palette, Brightness brightness) {
+ThemeData _buildTheme(Brightness brightness) {
   final isLight = brightness == Brightness.light;
-  final isDesignDefault = palette == AppPalette.blueAmber;
 
-  final ColorScheme scheme;
-  if (isDesignDefault) {
-    scheme = isLight ? _blueAmberStitchLight : _blueAmberStitchDark;
-  } else {
-    final seed = switch (palette) {
-      AppPalette.blueAmber => const Color(0xFF0058BD),
-      AppPalette.purplePink => const Color(0xFF6D28D9),
-      AppPalette.greenTeal => const Color(0xFF2EC4B6),
-      AppPalette.redOrange => const Color(0xFFE63946),
-    };
-    final secondary = switch (palette) {
-      AppPalette.blueAmber => const Color(0xFF7D5800),
-      AppPalette.purplePink => const Color(0xFFF72585),
-      AppPalette.greenTeal => const Color(0xFF14B8A6),
-      AppPalette.redOrange => const Color(0xFFFF7F11),
-    };
-    final tertiary = switch (palette) {
-      AppPalette.blueAmber => const Color(0xFF4D5D73),
-      AppPalette.purplePink => const Color(0xFF64DFDF),
-      AppPalette.greenTeal => const Color(0xFF80ED99),
-      AppPalette.redOrange => const Color(0xFF06D6A0),
-    };
-    scheme = ColorScheme.fromSeed(seedColor: seed, brightness: brightness)
-        .copyWith(secondary: secondary, tertiary: tertiary);
-  }
-
-  final cs = scheme;
+  final cs = isLight ? _monoLight : _monoDark;
 
   final surfaceColor =
-      isLight ? (isDesignDefault ? cs.surface : Colors.white) : const Color(0xFF1A1A2E);
-  final cardColor = isLight ? Colors.white : const Color(0xFF16213E);
+      isLight ? const Color(0xFFFFFFFF) : const Color(0xFF0A0A0A);
+  final cardColor = isLight ? const Color(0xFFFFFFFF) : const Color(0xFF161616);
 
   final textTheme = GoogleFonts.interTextTheme().apply(
     bodyColor: isLight ? const Color(0xFF1F2937) : const Color(0xFFE5E7EB),
@@ -176,9 +140,7 @@ ThemeData _buildTheme(AppPalette palette, Brightness brightness) {
     useMaterial3: true,
     colorScheme: cs.copyWith(surface: surfaceColor),
     textTheme: textTheme,
-    scaffoldBackgroundColor: isDesignDefault
-        ? cs.surface
-        : (isLight ? const Color(0xFFF8FAFC) : const Color(0xFF0F0F23)),
+    scaffoldBackgroundColor: cs.surface,
 
     appBarTheme: AppBarTheme(
       backgroundColor: surfaceColor,

@@ -223,6 +223,12 @@ class PurchaseProvider with ChangeNotifier {
         await loadPurchases(FilterState(), notify: false); // Fallback
       }
 
+      final adminIndex =
+          _allPurchases.indexWhere((p) => p.id == _editingPurchaseId);
+      if (adminIndex != -1) {
+        _allPurchases[adminIndex] = updatedPurchase;
+      }
+
       return updatedPurchase;
     } catch (e) {
       _errorMessage = "Erreur lors de la mise à jour: $e";
@@ -241,6 +247,7 @@ class PurchaseProvider with ChangeNotifier {
     try {
       await _dbService.deletePurchase(id);
       _purchases.removeWhere((purchase) => purchase.id == id);
+      _allPurchases.removeWhere((purchase) => purchase.id == id);
       _errorMessage = '';
     } catch (e) {
       _errorMessage = "Erreur lors de la suppression: $e";
@@ -433,7 +440,9 @@ class PurchaseProvider with ChangeNotifier {
     final Purchase purchaseToSave = _purchaseBuilder.copyWith(
       id: _editingPurchaseId,
       date: effectiveDate, // Ensure purchase.date is immutable after creation
-      demander: _user?.userMetadata?['name'] ?? _purchaseBuilder.demander,
+      demander: _editingPurchaseId == null
+          ? (_user?.userMetadata?['name'] ?? _purchaseBuilder.demander)
+          : _purchaseBuilder.demander,
       items: _itemsBuilder.map((item) {
         // For items, preserve original createdAt if exists, otherwise set now.
         // modifiedAt is always updated.

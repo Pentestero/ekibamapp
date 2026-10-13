@@ -132,8 +132,12 @@ class _FilterPanelState extends State<FilterPanel> {
     );
     debugPrint(
         'FilterPanel _currentFilters updated: searchQuery: ${(_currentFilters.searchQuery.isEmpty) ? 'empty' : _currentFilters.searchQuery}, year: ${_currentFilters.year ?? 'null'}, month: ${_currentFilters.month ?? 'null'}, startDate: ${_currentFilters.startDate?.toIso8601String() ?? 'null'}, endDate: ${_currentFilters.endDate?.toIso8601String() ?? 'null'}, sortOption: ${_currentFilters.sortOption}');
-    widget.onFilterChanged(_currentFilters);
     setState(() {});
+  }
+
+  void _applyFilters() {
+    widget.onFilterChanged(_currentFilters);
+    Navigator.of(context).maybePop();
   }
 
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
@@ -266,6 +270,44 @@ class _FilterPanelState extends State<FilterPanel> {
             ],
           ),
           const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    _searchController.clear();
+                    _searchDebounce?.cancel();
+                    _startDateController.clear();
+                    _endDateController.clear();
+                    setState(() {
+                      _currentFilters = FilterState();
+                    });
+                  },
+                  child: Text(compactLayout ? 'Effacer' : 'Réinitialiser'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: _applyFilters,
+                  icon: const Icon(Icons.check),
+                  label: const Text('OK'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

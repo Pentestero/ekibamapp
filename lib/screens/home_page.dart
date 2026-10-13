@@ -50,11 +50,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onEditPurchaseFromHistory(Purchase purchase) {
+    context.read<PurchaseProvider>().loadPurchaseForEditing(purchase);
     setState(() {
       _currentIndex = 1;
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PurchaseProvider>().loadPurchaseForEditing(purchase);
     });
   }
 
@@ -86,7 +84,8 @@ class _HomePageState extends State<HomePage> {
       ),
       PurchaseFormScreen(onSubmissionSuccess: _handlePurchaseSubmissionSuccess),
       HistoryScreen(onEditPurchase: _onEditPurchaseFromHistory),
-      if (_isAdmin) const AdminDashboardScreen(),
+      if (_isAdmin)
+        AdminDashboardScreen(onEditPurchase: _onEditPurchaseFromHistory),
     ];
     _destinations = [
       const NavigationDestination(

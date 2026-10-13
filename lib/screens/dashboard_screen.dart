@@ -17,13 +17,6 @@ import 'package:provisions/widgets/filter_panel.dart';
 import 'package:provisions/widgets/project_expense_bars.dart';
 import 'package:provisions/widgets/supplier_donut_chart.dart';
 
-const Map<AppPalette, (String, Color)> _paletteBadges = {
-  AppPalette.blueAmber: ('Bleu-Ambre', Color(0xFFFFB703)),
-  AppPalette.purplePink: ('Violet-Rose', Color(0xFF8A38F5)),
-  AppPalette.greenTeal: ('Émeraude', Color(0xFF059669)),
-  AppPalette.redOrange: ('Cramoisi', Color(0xFFDC2626)),
-};
-
 class DashboardScreen extends StatefulWidget {
   final VoidCallback navigateToHistory;
   final VoidCallback? navigateToNewPurchase;
@@ -43,6 +36,8 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  int _selectedYear = DateTime.now().year;
+  int _selectedMonth = DateTime.now().month;
 
   @override
   void initState() {
@@ -58,43 +53,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   void dispose() {
     _controller.dispose();
     super.dispose();
-  }
-
-  void _showPaletteSelectionDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Choisir une palette'),
-          content: Consumer<ThemeController>(
-            builder: (context, themeController, child) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: AppPalette.values.map((palette) {
-                  return RadioListTile<AppPalette>(
-                    title: Text(palette.toString().split('.').last),
-                    value: palette,
-                    groupValue: themeController.palette,
-                    onChanged: (AppPalette? newPalette) {
-                      if (newPalette != null) {
-                        themeController.setPalette(newPalette);
-                        Navigator.of(dialogContext).pop();
-                      }
-                    },
-                  );
-                }).toList(),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Annuler'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void _showSnack(String message) {
@@ -127,6 +85,273 @@ class _DashboardScreenState extends State<DashboardScreen>
     return purchases
         .where((p) => p.date.year == month.year && p.date.month == month.month)
         .length;
+  }
+
+  List<Purchase> _purchasesForMonth(List<Purchase> purchases, DateTime month) {
+    return purchases
+        .where((p) => p.date.year == month.year && p.date.month == month.month)
+        .toList();
+  }
+
+  Map<String, int> _supplierTotalsFor(List<Purchase> purchases) {
+    final totals = <String, int>{};
+    for (final purchase in purchases) {
+      for (final item in purchase.items) {
+        final key =
+            (item.supplierName != null && item.supplierName!.isNotEmpty)
+                ? item.supplierName!
+                : 'Aucun';
+        totals[key] = (totals[key] ?? 0) + item.total;
+      }
+    }
+    return totals;
+  }
+
+  Map<String, int> _projectTotalsFor(List<Purchase> purchases) {
+    final totals = <String, int>{};
+    for (final purchase in purchases) {
+      totals[purchase.projectType] =
+          (totals[purchase.projectType] ?? 0) + purchase.grandTotal;
+    }
+    return totals;
+  }
+
+  Future<void> _pickPeriod() async {
+    final now = DateTime.now();
+    final years = [for (var y = 2025; y <= now.year; y++) y];
+    if (years.isEmpty) years.add(now.year);
+    int draftYear = _selectedYear;
+    int draftMonth = _selectedMonth;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final cs = Theme.of(context).colorScheme;
+            final monthNames = [
+              'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+            ];
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 48,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: cs.outlineVariant,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_month, color: cs.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Choisir la période',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, color: cs.onSurfaceVariant),
+                          onPressed: () => Navigator.of(sheetContext).pop(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<int>(
+                      initialValue: draftYear,
+                      decoration: const InputDecoration(labelText: 'Année'),
+                      items: years
+                          .map((y) => DropdownMenuItem(
+                                value: y,
+                                child: Text(y.toString()),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setSheetState(() => draftYear = value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Mois',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelLarge
+                              ?.copyWith(fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: List.generate(12, (index) {
+                        final month = index + 1;
+                        final selected = draftMonth == month;
+                        return Material(
+                          color: selected ? cs.primary : cs.surfaceContainer,
+                          borderRadius: BorderRadius.circular(12),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () =>
+                                setSheetState(() => draftMonth = month),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              child: Text(
+                                monthNames[index],
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: selected
+                                          ? cs.onPrimary
+                                          : cs.onSurface,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(sheetContext).pop();
+                        setState(() {
+                          _selectedYear = draftYear;
+                          _selectedMonth = draftMonth;
+                        });
+                      },
+                      icon: const Icon(Icons.check),
+                      label: const Text('OK'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPeriodSelector(DateTime selected) {
+    final cs = Theme.of(context).colorScheme;
+    final label = DateFormat('MMMM yyyy', 'fr_FR').format(selected);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: _pickPeriod,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.calendar_month, size: 20, color: cs.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Période affichée',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      label[0].toUpperCase() + label.substring(1),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _pickPeriod,
+                icon: const Icon(Icons.edit, size: 16),
+                label: const Text('Modifier'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoMonthData(DateTime selected) {
+    final cs = Theme.of(context).colorScheme;
+    final label = DateFormat('MMMM yyyy', 'fr_FR').format(selected);
+    return ScaleIn(
+      child: SizedBox(
+        width: double.infinity,
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              children: [
+                Icon(Icons.event_busy, size: 40, color: cs.outline),
+                const SizedBox(height: 12),
+                Text(
+                  'Aucun achat pour ${label[0].toUpperCase()}${label.substring(1)}',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Total dépensé : 0 XAF',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: cs.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -269,7 +494,11 @@ class _DashboardScreenState extends State<DashboardScreen>
           }
 
           final currency = currencyFormat;
-          final now = DateTime.now();
+          final selected = DateTime(_selectedYear, _selectedMonth);
+          final monthPurchases =
+              _purchasesForMonth(provider.purchases, selected);
+          final monthSupplierTotals = _supplierTotalsFor(monthPurchases);
+          final monthProjectTotals = _projectTotalsFor(monthPurchases);
 
           return FadeTransition(
             opacity: CurvedAnimation(
@@ -289,21 +518,27 @@ class _DashboardScreenState extends State<DashboardScreen>
                     const SizedBox(height: 16),
                     _buildQuickActions(),
                     const SizedBox(height: 16),
-                    _buildKpiSection(provider, now, cs),
-                    if (provider.supplierTotals.isNotEmpty) ...[
+                    _buildPeriodSelector(selected),
+                    const SizedBox(height: 16),
+                    _buildKpiSection(provider, selected, cs),
+                    if (provider.purchases.isEmpty) ...[
                       const SizedBox(height: 24),
-                      _buildDonutSection(provider, now),
-                    ],
-                    if (provider.projectTypeTotals.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      _buildProjectSection(provider),
-                    ],
-                    if (provider.purchases.isNotEmpty) ...[
-                      const SizedBox(height: 24),
-                      _buildRecentPurchasesSection(provider),
-                    ],
-                    if (provider.purchases.isEmpty)
                       _buildEmptyState(context),
+                    ] else if (monthPurchases.isEmpty) ...[
+                      const SizedBox(height: 24),
+                      _buildNoMonthData(selected),
+                    ] else ...[
+                      if (monthSupplierTotals.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        _buildDonutSection(monthSupplierTotals, selected),
+                      ],
+                      if (monthProjectTotals.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        _buildProjectSection(monthProjectTotals),
+                      ],
+                      const SizedBox(height: 24),
+                      _buildRecentPurchasesSection(monthPurchases),
+                    ],
                     const SizedBox(height: 16),
                     const _SyncBanner(),
                     const SizedBox(height: 24),
@@ -478,8 +713,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               _buildQuickPills(),
             ],
           ),
-          const SizedBox(height: 12),
-          _buildPalettePills(),
         ],
       ),
     );
@@ -519,12 +752,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                       : ThemeMode.light,
                 ),
               ),
-              const SizedBox(width: 2),
-              _pillButton(
-                icon: Icons.palette_outlined,
-                tooltip: 'Choisir une palette',
-                onTap: () => _showPaletteSelectionDialog(context),
-              ),
             ],
           ),
         );
@@ -558,87 +785,6 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
         ),
       ),
-    );
-  }
-
-  Widget _buildPalettePills() {
-    return Consumer<ThemeController>(
-      builder: (context, themeController, child) {
-        final cs = Theme.of(context).colorScheme;
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              Text(
-                'Thème :',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-letterSpacing: 0.8,
-                    ),
-                  ),
-              const SizedBox(width: 8),
-              ...AppPalette.values.map((palette) {
-                final (label, dotColor) = _paletteBadges[palette]!;
-                final active = themeController.palette == palette;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: GestureDetector(
-                    onTap: () => themeController.setPalette(palette),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: active
-                            ? cs.primary
-                            : cs.surfaceContainer,
-                        borderRadius: BorderRadius.circular(999),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .shadow
-                                .withAlpha(10),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: dotColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            label,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                  color: active
-                                      ? cs.onPrimary
-                                      : cs.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ],
-          ),
-        );
-      },
     );
   }
 
@@ -733,11 +879,11 @@ letterSpacing: 0.8,
   }
 
   Widget _buildKpiSection(
-      PurchaseProvider provider, DateTime now, ColorScheme cs) {
+      PurchaseProvider provider, DateTime selected, ColorScheme cs) {
     final currency = NumberFormat('#,##0', 'fr_FR');
-    final thisMonthTotal = _monthTotal(provider.purchases, now);
+    final thisMonthTotal = _monthTotal(provider.purchases, selected);
     final lastMonthTotal = _monthTotal(
-        provider.purchases, DateTime(now.year, now.month - 1));
+        provider.purchases, DateTime(selected.year, selected.month - 1));
 
     final diffPct = lastMonthTotal <= 0
         ? null
@@ -748,8 +894,8 @@ letterSpacing: 0.8,
                 (thisMonthTotal + lastMonthTotal))
             .clamp(0.0, 1.0);
 
-    final monthName = DateFormat('MMMM', 'fr_FR').format(now);
-    final monthCount = _monthCount(provider.purchases, now);
+    final monthName = DateFormat('MMMM yyyy', 'fr_FR').format(selected);
+    final monthCount = _monthCount(provider.purchases, selected);
     final supplierCount = provider.suppliers.length;
 
     final bigCard = Card(
@@ -977,9 +1123,9 @@ letterSpacing: 0.8,
     );
   }
 
-  Widget _buildDonutSection(PurchaseProvider provider, DateTime now) {
+  Widget _buildDonutSection(Map<String, int> data, DateTime selected) {
     final cs = Theme.of(context).colorScheme;
-    final monthLabel = DateFormat('MMMM yyyy', 'fr_FR').format(now);
+    final monthLabel = DateFormat('MMMM yyyy', 'fr_FR').format(selected);
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -1016,18 +1162,17 @@ letterSpacing: 0.8,
               ],
             ),
             const SizedBox(height: 16),
-            SupplierDonutChart(data: provider.supplierTotals),
+            SupplierDonutChart(data: data),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProjectSection(PurchaseProvider provider) {
+  Widget _buildProjectSection(Map<String, int> data) {
     final cs = Theme.of(context).colorScheme;
     final currency = NumberFormat('#,##0', 'fr_FR');
-    final total = provider.projectTypeTotals.values
-        .fold<int>(0, (sum, v) => sum + v);
+    final total = data.values.fold<int>(0, (sum, v) => sum + v);
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -1064,14 +1209,14 @@ letterSpacing: 0.8,
               ],
             ),
             const SizedBox(height: 8),
-            ProjectExpenseBars(data: provider.projectTypeTotals),
+            ProjectExpenseBars(data: data),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRecentPurchasesSection(PurchaseProvider provider) {
+  Widget _buildRecentPurchasesSection(List<Purchase> purchases) {
     final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1106,7 +1251,7 @@ letterSpacing: 0.8,
           ],
         ),
         const SizedBox(height: 8),
-        ...provider.purchases
+        ...purchases
             .take(2)
             .map((purchase) => _buildRecentPurchaseCard(purchase)),
       ],

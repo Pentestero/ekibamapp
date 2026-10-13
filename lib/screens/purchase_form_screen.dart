@@ -691,7 +691,11 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  initialValue: provider.purchaseBuilder.miseADBudget,
+                  initialValue: (provider.purchaseBuilder.miseADBudget == null ||
+                          provider.requesters.contains(
+                              provider.purchaseBuilder.miseADBudget))
+                      ? provider.purchaseBuilder.miseADBudget
+                      : null,
                   isExpanded: true,
                   decoration: _fieldDecoration(
                     context,
