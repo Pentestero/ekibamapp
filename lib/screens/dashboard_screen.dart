@@ -125,6 +125,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -139,11 +140,13 @@ class _DashboardScreenState extends State<DashboardScreen>
             ];
             return SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+                padding: EdgeInsets.fromLTRB(
+                    20, 12, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                     Center(
                       child: Container(
                         width: 48,
@@ -254,6 +257,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ],
                 ),
               ),
+            ),
             );
           },
         );
